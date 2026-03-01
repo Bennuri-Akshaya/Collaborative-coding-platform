@@ -4,13 +4,15 @@
 
 const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
 const connectDB = require('./config/db');  
-const roomRoutes = require('./routes/authRoutes');  
+const roomRoutes = require('./routes/roomRoutes');  
+const authRoutes = require('./routes/authRoutes');
+const authMiddleware = require('./middleware/authMiddleware');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-dotenv.config();
 connectDB();
 
 app.get('/',(req,res)=>{
@@ -18,7 +20,8 @@ app.get('/',(req,res)=>{
 })
 
 app.use(express.json());
-app.use('/api/rooms', roomRoutes);
+app.use('/auth', authRoutes);
+app.use('/rooms', authMiddleware, roomRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

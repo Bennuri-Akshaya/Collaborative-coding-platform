@@ -58,7 +58,7 @@ router.post("/signin",async (req,res) => {
             return res.status(400).json({message: "Invalid Credentials"})
         }
         //Verify password
-        const isMatch = await argon2.verify(password,user.password);
+        const isMatch = await argon2.verify(user.password,password);
         if(!isMatch){
             return res.status(400).json({message: "Invalid Credentials"})
         }
@@ -76,7 +76,7 @@ router.post("/signin",async (req,res) => {
             username: user.username,
         })
     }catch(error){
-        res.status(500).json({error: error.message || "Failed to sign in"})
+        res.status(500).json({ error: error.message})
     }
 
 });

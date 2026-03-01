@@ -1,0 +1,92 @@
+###
+GET http://localhost:5000
+
+###
+POST http://localhost:5000/auth/signup
+Content-Type:application/json
+
+{
+    "username" : "Aksh",
+    "password" : "aksh1234"
+}
+
+###
+POST http://localhost:5000/auth/signin
+Content-Type:application/json
+
+{
+    "username" : "Aksh",
+    "password" : "aksh1234"
+}
+
+###
+POST http://localhost:5000/auth/signup
+Content-Type:application/json
+
+{
+    "username" : "Dino",
+    "password" : "dino1234"
+}
+
+###
+POST http://localhost:5000/auth/signup
+Content-Type:application/json
+
+{
+    "username" : "Wonwoo",
+    "password" : "wonuu1234"
+}
+
+###
+POST http://localhost:5000/auth/signin
+Content-Type:application/json
+
+{
+    "username" : "Wonwoo",
+    "password" : "wonuu1234"
+}
+
+###
+POST http://localhost:5000/auth/signin
+Content-Type:application/json
+
+{
+    "username" : "Dino",
+    "password" : "dino1234"
+}
+
+###creating a new room
+POST http://localhost:5000/rooms/create
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTMxNWFiMjkxMmVmZGY3MTdjMmVhOSIsInVzZXJuYW1lIjoiV29ud29vIiwiaWF0IjoxNzcyMjk1OTcwLCJleHAiOjE3NzIzODIzNzB9.e56CN-0l6LvJJtCfCN1PvFBSiNT5RP31AxPnB8fe0m8
+Content-Type: application/json
+
+{
+    "userId" : "69a315a72912efdf717c2ea6"
+}
+
+###joining a existing room
+POST http://localhost:5000/rooms/join/a4633531-76e0-4e93-811a-11577f602515
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTJlZTI2MWFhMWM2MDY5NjBjMWQ1MiIsInVzZXJuYW1lIjoiQWtzaCIsImlhdCI6MTc3MjI5ODc1MSwiZXhwIjoxNzcyMzg1MTUxfQ.V7XOEZPvU6WXU5605pM-15XKtsNJpAavUMHsWC2obEU
+Content-Type: application/json
+
+{
+    "userId": "69a2ee261aa1c606960c1d52"
+}
+
+###room not found
+POST http://localhost:5000/rooms/join/3d63f1b0-ecd3-4d74-8e52-aadd004bec05
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTMxNWE3MjkxMmVmZGY3MTdjMmVhNiIsInVzZXJuYW1lIjoiRGlubyIsImlhdCI6MTc3MjI5NzYyMSwiZXhwIjoxNzcyMzg0MDIxfQ.hxMpqN9STaRtTOSylC2xwc1-wwdv9oRYmfEI-k-L6ZE
+Content-Type: application/json
+
+{
+    "userId": "69a315a72912efdf717c2ea6"
+}
+
+###leaving a room
+POST http://localhost:5000/rooms/leave/a4633531-76e0-4e93-811a-11577f602515
+Authorization:Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YTJlZTI2MWFhMWM2MDY5NjBjMWQ1MiIsInVzZXJuYW1lIjoiQWtzaCIsImlhdCI6MTc3MjI5ODc1MSwiZXhwIjoxNzcyMzg1MTUxfQ.V7XOEZPvU6WXU5605pM-15XKtsNJpAavUMHsWC2obEU
+Content-Type: application/json
+
+{
+    "userId": "69a2ee261aa1c606960c1d52"
+}
