@@ -3,7 +3,7 @@ const argon2 = require("argon2");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 
-const router = express.Router();    
+const router = express.Router(); 
 
 //Sign up route
 router.post("/signup",async(req,res)=>{
@@ -78,7 +78,6 @@ router.post("/signin",async (req,res) => {
     }catch(error){
         res.status(500).json({ error: error.message})
     }
-
 });
 
 module.exports = router;

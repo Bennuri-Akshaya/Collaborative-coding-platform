@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate,useLocation } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { signIn, signUp } from "../api/api";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState("signin"); // "signin" or "signup"
 
   // Sign In form state
@@ -18,19 +20,28 @@ export default function Auth() {
     password: "",
     confirmPassword: "",
   });
-
-  const handleSignInSubmit = (e) => {
-  e.preventDefault();
-
+  
+  const redirectPath = location.state?.from || "/rooms";
+  const handleSignInSubmit = async (e) => {
+    e.preventDefault();
+  //below is to validate that username and password is provided
   if (!signInData.username || !signInData.password) {
     alert("Please enter both username and password.");
     return;
   }
-
-  navigate("/rooms");
+  try{
+    console.log("Sign in clicked");
+    const res = await signIn(signInData);
+    localStorage.setItem("token", res.data.token);
+    navigate(redirectPath, { replace: true });
+  }
+  catch(err){
+    console.log(err);
+    alert("Sign in failed. Please check your credentials.");
+  }
 };
 
-  const handleSignUpSubmit = (e) => {
+  const handleSignUpSubmit = async (e) => {
   e.preventDefault();
 
   if (!signUpData.username || !signUpData.password || !signUpData.confirmPassword) {
@@ -42,8 +53,15 @@ export default function Auth() {
     alert("Passwords do not match.");
     return;
   }
+  try{
+    const res = await signUp({ username: signUpData.username, password: signUpData.password });
+    localStorage.setItem("token", res.data.token);
+    navigate(redirectPath, { replace: true });
+  }
+  catch(err){
+    alert("Sign up failed. Please try another username.");
 
-  navigate("/rooms");
+  }
 };
 
   return (

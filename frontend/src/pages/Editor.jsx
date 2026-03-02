@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
+import { validateRoom,leaveRoom } from "../api/api";
 
 //CHAT WIDGET
 function ChatWidget({ isOpen, setIsOpen }) {
@@ -115,6 +116,19 @@ export default function EditorPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
 
+  useEffect(() =>{
+    const checkAccess = async()=>{
+      try{
+        await validateRoom(roomId);
+      }catch(error){
+        navigate("/auth",{
+          state: { from: `/editor/${roomId}` },
+        });
+      }
+    };
+    checkAccess();
+  },[roomId,navigate]);
+
   const [copied, setCopied] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -135,13 +149,20 @@ export default function EditorPage() {
   ];
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(roomId);
+    const fullLink = `${window.location.origin}/editor/${roomId}`;
+    navigator.clipboard.writeText(fullLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleLeaveRoom = () => navigate("/rooms");
-
+  const handleLeaveRoom = async () => {
+    try{
+      await leaveRoom(roomId);
+      navigate("/rooms");
+    }catch(error){
+      console.error("Failed to leave room:", error);
+    }
+  }
   const runJS = () => {
     try {
       let logs = [];

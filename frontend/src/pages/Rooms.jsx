@@ -1,16 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
+import { validateRoom } from "../api/api";
 
 export default function Rooms() {
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
 
-  const handleJoinRoom = () => {
-    if (roomId.trim()) {
-      navigate(`/editor/${roomId.trim()}`);
+  const handleJoinRoom = async () => {
+    try{
+      console.log("Join clicked");
+      let value = roomId.trim();
+
+      if(value.includes("/editor/")){
+        value = value.split("/editor/")[1];
+      }
+      navigate(`/editor/${value}`);
+    }catch(error){
+      alert("Room does not exist")
     }
-  };
+    }
 
   const handleCreateRoom = () => {
     navigate('/create-room');

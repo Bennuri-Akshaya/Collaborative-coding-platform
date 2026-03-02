@@ -1,21 +1,33 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { nanoid } from "nanoid";
 import { Copy, Check, ArrowRight } from "lucide-react";
+import { createRoom } from "../api/api";
+import { useRef } from "react";
 
 export default function CreateRoom() {
   const navigate = useNavigate();
   const [roomId, setRoomId] = useState("");
   const [copied, setCopied] = useState(false);
+  const hasCreated = useRef(false);
 
-  useEffect(() => {
-    // Generate room ID when component mounts
-    const generatedId = nanoid(10);
-    setRoomId(generatedId);
-  }, []);
+  useEffect(() =>{
+    if(hasCreated.current) return; // Prevent multiple room creation on re-render
+    hasCreated.current = true;
+    
+    const createNewRoom = async () =>{
+      try{
+        const res = await createRoom();
+        setRoomId(res.data.roomId);
+      }catch(error){
+        console.log(error);
+      }
+    }
+    createNewRoom();
+  })
 
   const handleCopyId = () => {
-    navigator.clipboard.writeText(roomId);
+    const fullLink = `${window.location.origin}/editor/${roomId}`;
+    navigator.clipboard.writeText(fullLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

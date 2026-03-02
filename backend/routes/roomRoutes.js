@@ -9,7 +9,7 @@ const router = express.Router(); //routing for room creation and management
 // Create a new room
 router.post("/create",authMiddleware,async(req,res)=>{
     try{
-        const { userId } = req.body;
+        const userId = req.user.id;
 
         const newRoom = new Room({
             roomId:uuidv4(),
@@ -60,6 +60,22 @@ router.post("/join/:roomId",authMiddleware,async (req,res)=>{
         });
     }catch(error){
         res.status(500).json({error: error.message || "Failed to join room" });
+    }
+});
+
+//Adding room validation route when user tries to access room directly via url, we can check if room exists and if user is a participant before allowing access to editor page
+router.get("/:roomId",authMiddleware,async (req,res)=>{
+    try{
+        const { roomId} = req.params;
+
+        const room = await Room.findOne({ roomId }).populate("participants","username");//this will give us the participant details along with their usernames instead of user ids
+        if(!room){
+            return res.status(404).json({ message: "Room not found"});
+        }
+
+        res.status(200).json({ message: "Room access validated"})
+    }catch(error){
+        res.status(500).json({error: error.message || "Failed to validate room access" });
     }
 });
 
