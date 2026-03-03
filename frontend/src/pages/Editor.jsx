@@ -13,6 +13,7 @@ import {
 import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { validateRoom,leaveRoom } from "../api/api";
+import { io } from "socket.io-client";//socket io in frontend
 
 //CHAT WIDGET
 function ChatWidget({ isOpen, setIsOpen }) {
@@ -115,7 +116,10 @@ function ChatWidget({ isOpen, setIsOpen }) {
 export default function EditorPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
+  const [participants, setParticipants] = useState([]);
+  const socketRef = useRef(null);
 
+  //to check if user has access to the room when component mounts, if not redirect to auth page
   useEffect(() =>{
     const checkAccess = async()=>{
       try{
@@ -129,6 +133,30 @@ export default function EditorPage() {
     checkAccess();
   },[roomId,navigate]);
 
+  //this useeffect is for socket connection and mounting participants list 
+  useEffect(()=>{
+    socketRef.current =io("http://localhost:5000");
+    
+    socketRef.current.on("participants-joined",(participants)=>{
+      console.log("Participants:",participants);
+      setParticipants(participants);
+    });
+    
+    socketRef.current.on("connect",()=>{
+      console.log("Connected to socket server with id: " + socketRef.current.id);
+      console.log("Sending token:", localStorage.getItem("token"));
+      socketRef.current.emit("join-room",{
+        roomId,
+        token: localStorage.getItem("token"),
+      });
+    });
+
+    return () =>{
+      socketRef.current.disconnect();
+    }
+  },[roomId]);
+
+  const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
@@ -157,7 +185,9 @@ export default function EditorPage() {
 
   const handleLeaveRoom = async () => {
     try{
-      await leaveRoom(roomId);
+      if(socketRef.current){
+        socketRef.current.disconnect();
+      }
       navigate("/rooms");
     }catch(error){
       console.error("Failed to leave room:", error);
@@ -241,32 +271,45 @@ export default function EditorPage() {
           {/* SIDEBAR*/}
           <div className="h-full flex flex-col overflow-hidden">
 
-            {/* Participants */}
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex-shrink-0">
-              <div className="flex items-center gap-2 mb-3">
-                <Users size={20} className="text-gray-400" />
-                <h2 className="font-semibold text-lg">Participants</h2>
-              </div>
-
-              <div className="flex items-center gap-3 bg-white/5 p-3 rounded-lg">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center font-bold">
-                  Y
-                </div>
-
-                <div className="flex-1">
-                  <p className="text-sm font-medium">You</p>
-                  <p className="text-xs text-gray-500">Host</p>
-                </div>
-
-                <span className="px-2 py-1 text-xs text-green-400 bg-green-500/20 border border-green-500/30 rounded-full">
-                  Online
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-500 mt-3 text-center">
-                Waiting for others to join…
-              </p>
+           <div className="flex items-center gap-2 mb-3">
+              <Users size={20} className="text-gray-400" />
+              <h2 className="font-semibold text-lg">Participants</h2>
             </div>
+
+            {participants.length === 0 ? (
+               <p className="text-xs text-gray-500 mt-3 text-center">
+                  Waiting for others to join…
+                </p>
+              ) : (
+             participants.map((participant) => (
+      <div
+        key={participant.socketId}
+        className="flex items-center gap-3 bg-white/5 p-3 rounded-lg mb-2"
+      >
+        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center font-bold">
+          {participant.username.charAt(0).toUpperCase()}
+        </div>
+
+        <div className="flex-1">
+          <p className="text-sm font-medium">
+            {participant.username === currentUsername
+              ? "You"
+              : participant.username}
+          </p>
+
+          <p className="text-xs text-gray-500">
+            {participant.role === "host" ? "Host" : "Participant"}
+          </p>
+        </div>
+
+        <span className="px-2 py-1 text-xs text-green-400 bg-green-500/20 border border-green-500/30 rounded-full">
+          Online
+        </span>
+      </div>
+    ))
+  )}
+</div>
 
             {/* Chat area below participants */}
             <div className="mt-4 flex-1 min-h-0 flex flex-col">

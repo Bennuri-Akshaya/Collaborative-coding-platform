@@ -33,6 +33,7 @@ export default function Auth() {
     console.log("Sign in clicked");
     const res = await signIn(signInData);
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("username", res.data.username);
     navigate(redirectPath, { replace: true });
   }
   catch(err){
@@ -56,11 +57,11 @@ export default function Auth() {
   try{
     const res = await signUp({ username: signUpData.username, password: signUpData.password });
     localStorage.setItem("token", res.data.token);
+    localStorage.setItem("username", res.data.username);
     navigate(redirectPath, { replace: true });
   }
   catch(err){
     alert("Sign up failed. Please try another username.");
-
   }
 };
 
