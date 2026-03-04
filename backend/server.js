@@ -90,7 +90,7 @@ io.on("connection",(socket)=>{
             console.error("Invalid token in socket:", error);
         }
     });
-    socket.on("disconnect",()=>{
+    socket.on("disconnect",async ()=>{
         const roomId = socket.roomId;
 
         if(roomId && rooms[roomId]){
@@ -112,6 +112,13 @@ io.on("connection",(socket)=>{
             //if room becomes empty, delete it from the rooms object
             if(rooms[roomId].length === 0){
                 delete rooms[roomId];
+
+                //Delete chat messages for the room when participants 0
+                await ChatMessage.deleteMany({ roomId });
+
+                //Delete the room itself in db when 0 participants
+                await Room.deleteOne({ roomId });
+                console.log(`Room ${ roomId } and its chat are deleted`);
             }else{
                 io.to(roomId).emit("participants-joined", rooms[roomId]);
             }
