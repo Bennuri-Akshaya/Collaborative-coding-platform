@@ -16,43 +16,92 @@ import { validateRoom,leaveRoom } from "../api/api";
 import { io } from "socket.io-client";//socket io in frontend
 
 //CHAT WIDGET
-function ChatWidget({ isOpen, setIsOpen }) {
-  const [messages, setMessages] = useState([
-    { id: 1, user: "System", text: "Welcome to the room!", timestamp: "10:30 AM" },
-    { id: 2, user: "System", text: "Start collaborating with your team!", timestamp: "10:30 AM" }
-  ]);
-
+function ChatWidget({ isOpen, setIsOpen , socket , roomId , username }) {
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
+  const [typingUsers, setTypingUsers] = useState([]);
+
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(()=>{
+    if(!socket) return;
+
+    //removing prev listeners to avoid duplicates when chat widget is opened multiple times
+    socket.off("chat:history");
+    socket.off("chat:receive");
+    socket.off("typing:start");
+    socket.off("typing:stop");
+
+    socket.on("chat:history",(history)=>{
+      console.log("Chat history:", history);
+      setMessages(history);
+    });
+    socket.on("chat:receive",(message)=>{
+      setMessages((prev) => {
+        if(message._id && prev.some((m) => m._id === message._id))  return prev;
+        return [...prev, message];
+      });
+    });
+
+    //typing start
+    socket.on("typing:start",(user)=>{
+      if(user === username) return; //never show the user name to himself
+      setTypingUsers((prev) => prev.includes(user) ? prev : [...prev, user]);
+    })
+
+    //typing stop
+    socket.on("typing:stop",(user)=>{
+      setTypingUsers((prev) => prev.filter((u) => u !== user));
+    })
+
+    socket.emit("chat:request-history", {roomId});
+    return () =>{
+      socket.off("chat:history");
+      socket.off("chat:receive");
+      socket.off("typing:start");
+      socket.off("typing:stop");
+    };
+  },[socket,username]);
+
   const handleSendMessage = (e) => {
     e.preventDefault();
+    console.log("Send clicked");
     if (!inputValue.trim()) return;
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: prev.length + 1,
-        user: "You",
-        text: inputValue,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      },
-    ]);
+    socket.emit("chat:send",{
+      roomId,
+      sender:username,
+      message: inputValue.trim(),
+    });
+
+    socket.emit("typing:stop", {roomId,username});
 
     setInputValue("");
+  };
+
+  const handleTyping = (e)=>{
+    const value = e.target.value;
+    setInputValue(value);
+
+    socket.emit("typing:start", {roomId,username});
+
+    if(typingTimeoutRef.current){
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("typing:stop", {roomId,username});
+    }, 1000);
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="bg-slate-900/80 border border-white/10 rounded-xl shadow-xl flex flex-col h-full">
+    <div className="bg-slate-900/80 border border-white/10 rounded-xl shadow-xl flex flex-col h-64">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -70,33 +119,48 @@ function ChatWidget({ isOpen, setIsOpen }) {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.map((m) => (
-          <div key={m.id}>
+        {messages.map((m,index) => {
+
+          const isSystem = m.sender === "System";
+          return(
+          <div key={index}>
             <div className="flex items-baseline gap-2">
-              <span className={`text-xs font-semibold ${m.user === "You" ? "text-blue-300" : "text-gray-400"}`}>
-                {m.user}
+              <span className={`text-xs font-semibold ${m.sender === username ? "text-blue-300" : "text-gray-400"}`}>
+                {m.sender}
               </span>
-              <span className="text-[10px] text-gray-500">{m.timestamp}</span>
+              <span className="text-[10px] text-gray-500">{new Date(m.createdAt).toLocaleTimeString([],{
+                hour: "2-digit",
+                minute: "2-digit",
+              })}</span>
             </div>
             <p
               className={`text-xs p-2 rounded-lg mt-1 ${
-                m.user === "You"
+                isSystem
+                ?"bg-purple-500/10 text-purple-300 italic text-center"
+                :m.sender === username
                   ? "bg-blue-500/20 text-white"
                   : "bg-white/5 text-gray-300"
               }`}
             >
-              {m.text}
+              {m.message}
             </p>
           </div>
-        ))}
+        )
+        })}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* //Typing Indicator */}
+      {typingUsers.length > 0 && (
+        <div className="px-4 pb-2 text-xs text-blue-300 italic">
+          {typingUsers.join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+        </div>
+      )}
       {/* Input */}
       <form onSubmit={handleSendMessage} className="border-t border-white/10 px-3 py-3 flex items-center gap-2">
         <input
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={handleTyping}
           className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
           placeholder="Type a message..."
         />
@@ -269,9 +333,9 @@ export default function EditorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
 
           {/* SIDEBAR*/}
-          <div className="h-full flex flex-col overflow-hidden">
+          <div className="h-full flex flex-col overflow-hidden min-h-0">
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex-shrink-0">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex-shrink-0 overflow-y-auto max-h-64">
            <div className="flex items-center gap-2 mb-3">
               <Users size={20} className="text-gray-400" />
               <h2 className="font-semibold text-lg">Participants</h2>
@@ -322,7 +386,7 @@ export default function EditorPage() {
                   Open Chat
                 </button>
               ) : (
-                <ChatWidget isOpen={isChatOpen} setIsOpen={setIsChatOpen} />
+                <ChatWidget isOpen={isChatOpen} setIsOpen={setIsChatOpen} socket={socketRef.current} roomId={roomId} username={currentUsername}/>
               )}
             </div>
           </div>

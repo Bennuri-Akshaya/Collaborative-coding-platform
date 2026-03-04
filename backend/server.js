@@ -14,6 +14,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const Room = require('./models/Room');
+const ChatMessage = require('./models/ChatMessage');
 
 const app = express();
 const server = http.createServer(app);
@@ -49,11 +50,25 @@ io.on("connection",(socket)=>{
             const userId = decoded.id;
 
             const room = await Room.findOne({ roomId});
-
             if(!room) return;
             
             socket.join(roomId);
             socket.roomId = roomId; //Store the roomId in the socket object for later use, such as when the user disconnects.
+
+            //Save message to DB and send to everyone in that room
+            const systemMessage = new ChatMessage({
+                roomId,
+                sender:"System",
+                message: `${username} has joined the room.`,
+            });
+            const savedSystemMessage = await systemMessage.save();
+            //now fetch the last 50 messages from that room and send to the user who just joined
+            const messages = await ChatMessage.find({ roomId }).sort({ createdAt: 1 }).limit(50);
+            socket.emit("chat:history", messages);
+
+            //broadcast join message to everyone in that room except the sender
+            socket.to(roomId).emit("chat:receive", savedSystemMessage);
+
 
             if(!rooms[roomId]){
                 rooms[roomId] = [];
@@ -63,7 +78,7 @@ io.on("connection",(socket)=>{
 
             rooms[roomId].push({
                 socketId: socket.id,
-                username:username,
+                username,
                 role: isHost ? "host" : "participant",
             });
 
@@ -80,10 +95,20 @@ io.on("connection",(socket)=>{
 
         if(roomId && rooms[roomId]){
             //Remove this socket from the room's participant list
+            const leavingUser = rooms[roomId].find(
+                (participant) => participant.socketId === socket.id
+            );
             rooms[roomId] = rooms[roomId].filter(
                 (participant) => participant.socketId !== socket.id
             );
 
+            if(leavingUser){
+                io.to(roomId).emit("chat:receive", {
+                    sender: "System",
+                    message: `${leavingUser.username} has left the room.`,
+                    createdAt: new Date(),
+                });
+            }
             //if room becomes empty, delete it from the rooms object
             if(rooms[roomId].length === 0){
                 delete rooms[roomId];
@@ -96,7 +121,34 @@ io.on("connection",(socket)=>{
     socket.on("leave-room",() =>{
         socket.disconnect();
     })
+    socket.on("chat:send", async ({ roomId, message, sender})=>{
+        try{
+            const chat = new ChatMessage({
+                roomId,
+                sender,
+                message,
+            });
+            const savedMessage = await chat.save();
+            io.to(roomId).emit("chat:receive", savedMessage);
+        }catch(error){
+            console.error("Chat message error:", error);
+        }
+    })
+    socket.on("typing:start",({ roomId,username })=>{
+        socket.to(roomId).emit("typing:start",  username );
+    });
+    socket.on("typing:stop",({ roomId,username })=>{
+        socket.to(roomId).emit("typing:stop",  username );
+    });
 
+    socket.on("chat:request-history", async ({ roomId })=>{
+        try{
+            const messages = await ChatMessage.find({ roomId }).sort({ createdAt: 1 }).limit(50);
+            socket.emit("chat:history", messages);
+        }catch(error){
+            console.error("Chat history error:", error);
+        }
+});
 });
 
 app.use(express.json());
