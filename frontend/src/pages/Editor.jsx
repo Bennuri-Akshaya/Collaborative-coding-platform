@@ -15,6 +15,10 @@ import Editor from "@monaco-editor/react";
 import { validateRoom,leaveRoom } from "../api/api";
 import { io } from "socket.io-client";//socket io in frontend
 
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import { MonacoBinding } from "y-monaco";
+
 //CHAT WIDGET
 function ChatWidget({ isOpen, setIsOpen , socket , roomId , username }) {
   const [messages, setMessages] = useState([]);
@@ -182,6 +186,11 @@ export default function EditorPage() {
   const navigate = useNavigate();
   const [participants, setParticipants] = useState([]);
   const socketRef = useRef(null);
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const providerRef = useRef(null);
+  const ydocRef = useRef(null);
+  const bindingRef = useRef(null);
 
   //to check if user has access to the room when component mounts, if not redirect to auth page
   useEffect(() =>{
@@ -220,11 +229,52 @@ export default function EditorPage() {
     }
   },[roomId]);
 
+  useEffect(() => {
+  const ydoc = new Y.Doc();
+  ydocRef.current = ydoc;
+
+  const provider = new WebsocketProvider(
+    "ws://localhost:1234",
+    roomId,
+    ydoc
+  );
+  providerRef.current = provider;
+
+  provider.on("status", (e) => {
+    console.log("Yjs status:", e.status);
+  });
+
+  const yText = ydoc.getText("monaco");
+
+  // Insert default code only after initial sync
+  provider.once("sync", () => {
+    if (yText.length === 0) {
+      yText.insert(
+        0,
+`// Welcome to CoDev!
+// Start coding here...
+
+function hello() {
+  console.log("Hello, World!");
+}
+
+hello();
+`
+      );
+    }
+  });
+
+  return () => {
+    bindingRef.current?.destroy();
+    provider.destroy();
+    ydoc.destroy();
+  };
+}, [roomId]);
+
   const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const [code, setCode] = useState(`// Welcome to CoDev!\n// Start coding here...\n\nfunction hello() {\n  console.log("Hello, World!");\n}\n\nhello();`);
   const [output, setOutput] = useState("// Output will appear here...\n");
   const [language, setLanguage] = useState("javascript");
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
@@ -264,8 +314,9 @@ export default function EditorPage() {
 
       console.log = (...args) => logs.push(args.join(" "));
 
+      const currentCode = editorRef.current.getValue();
       // eslint-disable-next-line no-new-func
-      new Function(code)();
+      new Function(currentCode)();
 
       console.log = originalLog;
 
@@ -392,7 +443,7 @@ export default function EditorPage() {
           </div>
 
           {/*EDITOR + OUTPUT*/}
-          <div className="lg:col-span-3 h-125 flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+          <div className="lg:col-span-3 h-125 flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-y-auto">
 
             {/* Editor Toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5">
@@ -456,10 +507,25 @@ export default function EditorPage() {
               <div className="flex-1 min-h-0">
                 <Editor
                   height="100%"
-                  value={code}
                   language={language}
                   theme="vs-dark"
-                  onChange={(v) => setCode(v ?? "")}
+                 onMount={(editor, monaco) => {
+  editorRef.current = editor;
+  monacoRef.current = monaco;
+
+  const ydoc = ydocRef.current;
+  const provider = providerRef.current;
+  if (!ydoc || !provider) return; // wait until useEffect ran
+
+  const yText = ydoc.getText("monaco");
+
+  bindingRef.current = new MonacoBinding(
+    yText,
+    editor.getModel(),
+    new Set([editor]),
+    provider.awareness
+  );
+}}
                   options={{
                     minimap: { enabled: true },
                     fontSize: 14,
