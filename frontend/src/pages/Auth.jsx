@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { useNavigate,useLocation } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signIn, signUp } from "../api/api";
@@ -7,7 +7,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState("signin"); // "signin" or "signup"
-
+  const [rememberMe, setRememberMe] = useState(false);
   // Sign In form state
   const [signInData, setSignInData] = useState({
     username: "",
@@ -35,6 +35,11 @@ export default function Auth() {
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("username", res.data.username);
     navigate(redirectPath, { replace: true });
+    if (rememberMe) {
+  localStorage.setItem("savedUsername", signInData.username);
+} else {
+  localStorage.removeItem("savedUsername");
+}
   }
   catch(err){
     console.log(err);
@@ -65,6 +70,17 @@ export default function Auth() {
   }
 };
 
+useEffect(() => {
+  const savedUsername = localStorage.getItem("savedUsername");
+
+  if (savedUsername) {
+    setSignInData((prev) => ({
+      ...prev,
+      username: savedUsername
+    }));
+    setRememberMe(true);
+  }
+}, []);
   return (
     <div className="min-h-screen w-full bg-slate-950 text-white flex items-center justify-center px-4 pb-12">
       {/* Background glow effects */}
@@ -173,6 +189,8 @@ export default function Auth() {
                   <label className="flex items-center gap-2 text-gray-400 cursor-pointer">
                     <input
                       type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
                       className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
                     />
                     <span>Remember me</span>
