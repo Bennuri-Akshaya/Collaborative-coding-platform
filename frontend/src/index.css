@@ -70,3 +70,32 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #475569; /* slate-600 */
 }
+
+/* Yjs Remote Cursors */
+.yRemoteSelection {
+  opacity: 0.3;
+  border-radius: 2px;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  top: -20px;
+  left: -2px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px 4px 4px 0;
+  white-space: nowrap;
+  color: #fff;
+  pointer-events: none;
+  z-index: 100;
+}

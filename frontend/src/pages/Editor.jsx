@@ -192,6 +192,20 @@ export default function EditorPage() {
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);
 
+  // Add this helper function outside the component
+function getColorForUser(username) {
+  const colors = [
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
+    "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F",
+    "#BB8FCE", "#85C1E9", "#F8C471", "#82E0AA",
+  ];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
   //to check if user has access to the room when component mounts, if not redirect to auth page
   useEffect(() =>{
     const checkAccess = async()=>{
@@ -335,7 +349,7 @@ hello();
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+       <div className="min-h-screen bg-slate-950 text-white flex flex-col">
       
       {/* HEADER */}
       <div className="bg-white/5 border-b border-white/10 backdrop-blur-sm">
@@ -515,16 +529,65 @@ hello();
 
   const ydoc = ydocRef.current;
   const provider = providerRef.current;
-  if (!ydoc || !provider) return; // wait until useEffect ran
+  if (!ydoc || !provider) return;
 
+  // ✅ Force LF line endings to match Yjs internal format
+  const model = editor.getModel();
+  model.setEOL(monaco.editor.EndOfLineSequence.LF);
   const yText = ydoc.getText("monaco");
+
+  const color = getColorForUser(currentUsername);
+
+  // Set this user's awareness info (name + color)
+  provider.awareness.setLocalStateField("user", {
+    name: currentUsername,
+    color: color,
+  });
 
   bindingRef.current = new MonacoBinding(
     yText,
-    editor.getModel(),
+    model,
     new Set([editor]),
     provider.awareness
   );
+
+  // Apply remote cursor styles dynamically as awareness changes
+  const applyRemoteCursorStyles = () => {
+  const states = provider.awareness.getStates();
+  const styleId = "yjs-remote-cursor-styles";
+  let styleEl = document.getElementById(styleId);
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+
+  let css = "";
+  states.forEach((state, clientId) => {
+    if (clientId === provider.awareness.clientID) return;
+    const user = state.user;
+    if (!user) return;
+
+    css += `
+      .yRemoteSelection-${clientId} {
+        background-color: ${user.color};
+      }
+      .yRemoteSelectionHead-${clientId} {
+        border-color: ${user.color};
+        background-color: ${user.color};
+      }
+      .yRemoteSelectionHead-${clientId}::after {
+        content: "${user.name}";
+        background-color: ${user.color};
+      }
+    `;
+  });
+
+  styleEl.innerHTML = css;
+};
+
+  provider.awareness.on("change", applyRemoteCursorStyles);
+  applyRemoteCursorStyles(); // run once on mount
 }}
                   options={{
                     minimap: { enabled: true },
