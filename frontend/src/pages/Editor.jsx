@@ -14,7 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { validateRoom,leaveRoom } from "../api/api";
 import { io } from "socket.io-client";//socket io in frontend
-
+import Split from "react-split";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "y-monaco";
@@ -516,7 +516,15 @@ hello();
             </div>
 
             {/* Editor + Output */}
-            <div className="flex-1 flex flex-col min-h-0">
+            {/* <div className="flex-1 flex flex-col min-h-0"> */}
+            <Split
+  direction="vertical"
+  sizes={[75, 25]}
+  minSize={80}
+  gutterSize={6}
+  className="flex-1 flex flex-col"
+>
+
               {/* Monaco Editor */}
               <div className="flex-1 min-h-0">
                 <Editor
@@ -610,7 +618,7 @@ hello();
                   {output}
                 </pre>
               </div>
-            </div>
+            </Split>
           </div>
         </div>
       </div>

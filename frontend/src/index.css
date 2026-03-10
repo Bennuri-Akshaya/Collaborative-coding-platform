@@ -99,3 +99,9 @@
   pointer-events: none;
   z-index: 100;
 }
+
+.gutter {
+  background-color: #2a2a2a;
+  cursor: row-resize;
+  height: 6px;
+}
