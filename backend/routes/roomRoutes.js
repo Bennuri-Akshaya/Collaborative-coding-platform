@@ -3,7 +3,6 @@ const {v4: uuidv4 } = require('uuid');
 const Room = require('../models/Room');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
-
 const router = express.Router(); //routing for room creation and management
 
 // Create a new room

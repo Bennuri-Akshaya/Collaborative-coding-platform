@@ -295,13 +295,10 @@ hello();
 
   const languages = [
     { value: "javascript", label: "JavaScript" },
-    { value: "typescript", label: "TypeScript" },
     { value: "python", label: "Python" },
     { value: "java", label: "Java" },
     { value: "cpp", label: "C++" },
-    { value: "html", label: "HTML" },
-    { value: "css", label: "CSS" },
-    { value: "json", label: "JSON" },
+    { value: "C", label: "C" },
   ];
 
   const handleCopyId = () => {

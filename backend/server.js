@@ -15,6 +15,12 @@ const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const Room = require('./models/Room');
 const ChatMessage = require('./models/ChatMessage');
+const  { pullImages } = require('./execution/startup');
+const { createBullBoard } = require("@bull-board/api");
+const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
+const { ExpressAdapter } = require("@bull-board/express");
+const { executionQueue } = require("./execution/queue.js");
+require("./execution/worker.js");
 
 const app = express();
 const server = http.createServer(app);
@@ -162,6 +168,26 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/rooms', authMiddleware, roomRoutes);
 
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// server.listen(PORT, () => {
+//     console.log(`Server is running on port ${PORT}`);
+// });
+app.use("/api/execution", require("./routes/executionRoutes.js"));
+
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath("/admin/queues");
+
+createBullBoard({
+  queues: [new BullMQAdapter(executionQueue)],
+  serverAdapter,
 });
+
+app.use("/admin/queues", serverAdapter.getRouter());
+
+async function startServer() {
+  await pullImages();                    // ← ADDED — pull Docker images first
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+startServer();
