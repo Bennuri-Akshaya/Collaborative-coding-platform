@@ -192,6 +192,15 @@ export default function EditorPage() {
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);
 
+  const currentUsername = localStorage.getItem("username");
+  const [copied, setCopied] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [output, setOutput] = useState("// Output will appear here...\n");
+  const [language, setLanguage] = useState("javascript");
+  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
+  const [languages, setLanguages] = useState([]);
+  const [isRunning, setIsRunning ] = useState(false);
+
   // Add this helper function outside the component
 function getColorForUser(username) {
   const colors = [
@@ -223,12 +232,8 @@ function getColorForUser(username) {
   //this useeffect is for socket connection and mounting participants list 
   useEffect(()=>{
     socketRef.current =io("http://localhost:5000");
-    
-    socketRef.current.on("participants-joined",(participants)=>{
-      console.log("Participants:",participants);
-      setParticipants(participants);
-    });
-    
+        
+    //Connection
     socketRef.current.on("connect",()=>{
       console.log("Connected to socket server with id: " + socketRef.current.id);
       console.log("Sending token:", localStorage.getItem("token"));
@@ -236,6 +241,43 @@ function getColorForUser(username) {
         roomId,
         token: localStorage.getItem("token"),
       });
+    });
+
+    //Participants 
+    socketRef.current.on("participants-joined",(participants)=>{
+      console.log("Participants:",participants);
+      setParticipants(participants);
+    });
+
+    //Execution listeners
+    socketRef.current.on("execution:queued",({ triggeredBy , language })=>{
+      setIsRunning(true);
+      setOutput(`Running ${language}... (triggered by ${triggeredBy})`);
+    });
+    //Execution completed - show the result
+    socketRef.current.on("execution:result",(data) =>{
+      console.log("execution:result received in this tab", data);
+      const { stdout, stderr, status, executionTime, triggeredBy, language: resultLanguage,} = data;
+      setIsRunning(false);
+      let result = "";
+      if(stdout) result += stdout;
+      if(stderr) result += `\n--- stderr ---\n${stderr}`;
+      if(!stdout && !stderr) result = "//No output.";
+      //Append metadata at bottom of output
+      result += `\n\n--- ${status} | ${executionTime}ms | run by ${triggeredBy} ---`;
+      setOutput(result);
+    });
+
+    //Execution rejected - room already running or rate limited
+    socketRef.current.on("execution:rejected",({ message })=>{
+      setIsRunning(false);
+      setOutput(`// ${message}`);
+    });
+
+    //Execution error - validation or unexpected failure
+    socketRef.current.on("execution:error",({ message })=>{
+      setIsRunning(false);
+      setOutput(`//Error: ${message}`);
     });
 
     return () =>{
@@ -259,6 +301,14 @@ function getColorForUser(username) {
   });
 
   const yText = ydoc.getText("monaco");
+  //Shared language state vis YJS 
+  //when any user changes language,everyone sees it
+  const yLanguage = ydoc.getText("language");
+  //Observe langugae changes from other users
+  yLanguage.observe(() =>{
+    const lang = yLanguage.toString();
+    if(lang) setLanguage(lang);
+  });
 
   // Insert default code only after initial sync
   provider.once("sync", () => {
@@ -276,6 +326,10 @@ hello();
 `
       );
     }
+    //Set default language in YJS if not set
+    if(yLanguage.length === 0){
+      yLanguage.insert(0,"javascript");
+    }
   });
 
   return () => {
@@ -285,21 +339,16 @@ hello();
   };
 }, [roomId]);
 
-  const currentUsername = localStorage.getItem("username");
-  const [copied, setCopied] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  const [output, setOutput] = useState("// Output will appear here...\n");
-  const [language, setLanguage] = useState("javascript");
-  const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
-
-  const languages = [
-    { value: "javascript", label: "JavaScript" },
-    { value: "python", label: "Python" },
-    { value: "java", label: "Java" },
-    { value: "cpp", label: "C++" },
-    { value: "C", label: "C" },
-  ];
+useEffect(()=>{
+    fetch("http://localhost:5000/api/execution/languages")
+    .then((res)=> res.json())
+    .then((data) => {
+      setLanguages(data);
+      //Set default language to first/second i need to see on list
+      if(data.length > 0) setLanguage(data[0].key);
+    })
+    .catch((err) => console.error("Failed to fetch languages:",err));
+  },[]);
 
   const handleCopyId = () => {
     const fullLink = `${window.location.origin}/editor/${roomId}`;
@@ -318,31 +367,31 @@ hello();
       console.error("Failed to leave room:", error);
     }
   }
-  const runJS = () => {
-    try {
-      let logs = [];
-      const originalLog = console.log;
-
-      console.log = (...args) => logs.push(args.join(" "));
-
-      const currentCode = editorRef.current.getValue();
-      // eslint-disable-next-line no-new-func
-      new Function(currentCode)();
-
-      console.log = originalLog;
-
-      setOutput(logs.join("\n") || "// No output.");
-    } catch (err) {
-      setOutput("Error: " + err.message);
-    }
-  };
 
   const runCode = () => {
-    if (language !== "javascript") {
-      setOutput(`// "${language}" execution is not enabled in this prototype.`);
+    console.log("runCode called");
+    console.log("socket:",socketRef.current?.id);
+    console.log("isRunning:", isRunning);
+    console.log("ydoc:",ydocRef.current);
+    console.log("code:",ydocRef.current?.getText("monaco").toString().slice(0,50));
+
+    if (!socketRef.current) return;
+    if (isRunning) return;
+    //Read code directly from YJS document - not editor state
+    //This ensures you get the latest collaborative content
+    const code = ydocRef.current?.getText("monaco").toString();
+    
+    if(!code || code.trim().length === 0){
+      setOutput("//Nothing to run.");
       return;
     }
-    runJS();
+
+    socketRef.current.emit("execution:request",{
+      roomId,
+      language,
+      code,
+      stdin: "",
+    });
   };
 
   return (
@@ -354,7 +403,7 @@ hello();
           <div className="flex justify-between items-center h-16">
 
             {/* Logo */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <img
                 src="https://i.pinimg.com/736x/5d/12/d0/5d12d0e14bd2110a430aa44555a2bdcb.jpg"
                 className="w-6 h-6 rounded-full"
@@ -468,10 +517,28 @@ hello();
                 {/* Run Button */}
                 <button
                   onClick={runCode}
-                  className="flex items-center gap-2 bg-green-500 hover:bg-green-600 px-3 py-2 rounded-lg text-white text-sm"
+                  disabled={isRunning}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-white text-sm transition-colors${
+                    isRunning
+                      ? "bg-gray-600 cursor-not-allowed"
+                      : "bg-green-500 hover:bg-green-600"
+                  }`}
                 >
-                  <Play size={16} />
-                  Run
+                  {isRunning ? (
+                    <>
+                    {/* For spinner while the code is getting executed */}
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    Running...
+                    </>
+                  ):(
+                    <>
+                    <Play size={16}/>
+                    Run
+                    </>
+                  )}
                 </button>
 
                 {/* Language Selector */}
@@ -483,7 +550,7 @@ hello();
                     className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg flex items-center gap-2"
                   >
                     <span className="text-gray-300 text-sm">
-                      {languages.find((l) => l.value === language)?.label}
+                      {languages.find((l) => l.key === language)?.label}
                     </span>
                     <ChevronDown size={16} className="text-gray-400" />
                   </button>
@@ -493,8 +560,15 @@ hello();
                       {languages.map((lang) => (
                         <button
                           key={lang.value}
+                          // Syncs via YJS to all collaborators
                           onClick={() => {
-                            setLanguage(lang.value);
+                            //Update Yjs shared language state
+                            const yLanguage = ydocRef.current?.getText("language");
+                            if(yLanguage){
+                              yLanguage.delete(0,yLanguage.length);
+                              yLanguage.insert(0,lang.key);
+                            }
+                            setLanguage(lang.key);
                             setIsLanguageDropdownOpen(false);
                           }}
                           className={`w-full px-4 py-2 text-sm text-left hover:bg-white/10 ${
@@ -605,13 +679,17 @@ hello();
               </div>
 
               {/* Output Panel */}
-              <div className="h-40 bg-black/40 border-t border-white/10 px-4 py-3 overflow-y-auto">
+              <div className="h-40 bg-black/40 border-t border-white/10 px-4 py-3">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs text-gray-300 uppercase">Output</span>
                   <span className="text-[10px] text-gray-500">Console</span>
                 </div>
 
-                <pre className="text-xs text-green-400 whitespace-pre-wrap font-mono">
+                <pre className={`text-xs whitespace-pre-wrap font-mono ${
+                  output.includes("Error") || output.includes("stderr") || output.includes("runtime_error") || output.includes("compile_error")
+                    ? "text-red-400"
+                    : "text-green-400"
+                }`}>
                   {output}
                 </pre>
               </div>

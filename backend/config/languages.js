@@ -1,4 +1,12 @@
 const LANGUAGES = {
+   javascript: {
+    label: "JavaScript (Node 18)",
+    image: "node:18-slim",
+    filename: "solution.js",
+    compileCmd: null,
+    runCmd: ["sh", "-c", "node /code/solution.js < /code/stdin.txt"],
+  },
+  
   python: {
     label: "Python 3.11",
     image: "python:3.11-slim",
@@ -6,14 +14,6 @@ const LANGUAGES = {
     compileCmd: null,
     // stdin handled via file redirect inside executor
     runCmd: ["sh", "-c", "python3 /code/solution.py < /code/stdin.txt"],
-  },
-
-  javascript: {
-    label: "JavaScript (Node 18)",
-    image: "node:18-slim",
-    filename: "solution.js",
-    compileCmd: null,
-    runCmd: ["sh", "-c", "node /code/solution.js < /code/stdin.txt"],
   },
 
   java: {

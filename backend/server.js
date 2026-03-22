@@ -12,15 +12,14 @@ const authRoutes = require('./routes/authRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 const http = require("http");
 const { Server } = require("socket.io");
-const jwt = require("jsonwebtoken");
-const Room = require('./models/Room');
-const ChatMessage = require('./models/ChatMessage');
 const  { pullImages } = require('./execution/startup');
 const { createBullBoard } = require("@bull-board/api");
 const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
 const { ExpressAdapter } = require("@bull-board/express");
 const { executionQueue } = require("./execution/queue.js");
-require("./execution/worker.js");
+const { initializeWorker } = require("./execution/worker.js");
+const { initializeSockets } = require("./socket/index.js")
+const { registerExecutionHandler } = require("./socket/executionHandler.js")
 
 const app = express();
 const server = http.createServer(app);
@@ -35,6 +34,22 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],  
 }));
 
+app.use(express.json());
+app.use('/auth', authRoutes);
+app.use('/rooms', authMiddleware, roomRoutes);
+app.use("/api/execution", require("./routes/executionRoutes.js"));
+
+//Bull booard
+const serverAdapter = new ExpressAdapter();
+serverAdapter.setBasePath("/admin/queues");
+
+createBullBoard({
+  queues: [new BullMQAdapter(executionQueue)],
+  serverAdapter,
+});
+app.use("/admin/queues", serverAdapter.getRouter());
+
+//Socket.io created
 const io = new Server(server,{
     cors:{
         origin: process.env.CLIENT_URL,
@@ -44,144 +59,11 @@ const io = new Server(server,{
     }
 })
 
-const rooms = {}; //In-memory store for rooms and their participants, where the key is the roomId and the value is an array of participant usernames and their socket ids.
+//Initialize worker with io before sockets
+initializeWorker(io);
 
-io.on("connection",(socket)=>{
-    console.log("A user connected: " + socket.id);
-    socket.on("join-room",async ({ roomId , token })=>{
-        try{
-            console.log("Received token in socket:", token);
-            const decoded = jwt.verify(token,process.env.JWT_SECRET);
-            const username = decoded.username;
-            const userId = decoded.id;
-
-            const room = await Room.findOne({ roomId});
-            if(!room) return;
-            
-            socket.join(roomId);
-            socket.roomId = roomId; //Store the roomId in the socket object for later use, such as when the user disconnects.
-
-            //Save message to DB and send to everyone in that room
-            const systemMessage = new ChatMessage({
-                roomId,
-                sender:"System",
-                message: `${username} has joined the room.`,
-            });
-            const savedSystemMessage = await systemMessage.save();
-            //now fetch the last 50 messages from that room and send to the user who just joined
-            const messages = await ChatMessage.find({ roomId }).sort({ createdAt: 1 }).limit(50);
-            socket.emit("chat:history", messages);
-
-            //broadcast join message to everyone in that room except the sender
-            socket.to(roomId).emit("chat:receive", savedSystemMessage);
-
-
-            if(!rooms[roomId]){
-                rooms[roomId] = [];
-            }
-
-            const isHost = room.createdBy.toString() === userId;
-
-            rooms[roomId].push({
-                socketId: socket.id,
-                username,
-                role: isHost ? "host" : "participant",
-            });
-
-            console.log(`${username} joined room: ${roomId}`);
-
-            //send event to everyone in that room
-            io.to(roomId).emit("participants-joined", rooms[roomId]);
-        }catch(error){
-            console.error("Invalid token in socket:", error);
-        }
-    });
-    socket.on("disconnect",async ()=>{
-        const roomId = socket.roomId;
-
-        if(roomId && rooms[roomId]){
-            //Remove this socket from the room's participant list
-            const leavingUser = rooms[roomId].find(
-                (participant) => participant.socketId === socket.id
-            );
-            rooms[roomId] = rooms[roomId].filter(
-                (participant) => participant.socketId !== socket.id
-            );
-
-            if(leavingUser){
-                io.to(roomId).emit("chat:receive", {
-                    sender: "System",
-                    message: `${leavingUser.username} has left the room.`,
-                    createdAt: new Date(),
-                });
-            }
-            //if room becomes empty, delete it from the rooms object
-            if(rooms[roomId].length === 0){
-                delete rooms[roomId];
-
-                //Delete chat messages for the room when participants 0
-                await ChatMessage.deleteMany({ roomId });
-
-                //Delete the room itself in db when 0 participants
-                await Room.deleteOne({ roomId });
-                console.log(`Room ${ roomId } and its chat are deleted`);
-            }else{
-                io.to(roomId).emit("participants-joined", rooms[roomId]);
-            }
-         }
-            console.log("A user disconnected: " + socket.id);
-        });
-    socket.on("leave-room",() =>{
-        socket.disconnect();
-    })
-    socket.on("chat:send", async ({ roomId, message, sender})=>{
-        try{
-            const chat = new ChatMessage({
-                roomId,
-                sender,
-                message,
-            });
-            const savedMessage = await chat.save();
-            io.to(roomId).emit("chat:receive", savedMessage);
-        }catch(error){
-            console.error("Chat message error:", error);
-        }
-    })
-    socket.on("typing:start",({ roomId,username })=>{
-        socket.to(roomId).emit("typing:start",  username );
-    });
-    socket.on("typing:stop",({ roomId,username })=>{
-        socket.to(roomId).emit("typing:stop",  username );
-    });
-
-    socket.on("chat:request-history", async ({ roomId })=>{
-        try{
-            const messages = await ChatMessage.find({ roomId }).sort({ createdAt: 1 }).limit(50);
-            socket.emit("chat:history", messages);
-        }catch(error){
-            console.error("Chat history error:", error);
-        }
-});
-});
-
-app.use(express.json());
-app.use('/auth', authRoutes);
-app.use('/rooms', authMiddleware, roomRoutes);
-
-// server.listen(PORT, () => {
-//     console.log(`Server is running on port ${PORT}`);
-// });
-app.use("/api/execution", require("./routes/executionRoutes.js"));
-
-const serverAdapter = new ExpressAdapter();
-serverAdapter.setBasePath("/admin/queues");
-
-createBullBoard({
-  queues: [new BullMQAdapter(executionQueue)],
-  serverAdapter,
-});
-
-app.use("/admin/queues", serverAdapter.getRouter());
+//Initialize sockets
+initializeSockets(io);
 
 async function startServer() {
   await pullImages();                    // ← ADDED — pull Docker images first

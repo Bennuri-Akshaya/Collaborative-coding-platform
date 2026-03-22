@@ -4,7 +4,11 @@
 const { Worker } =  require("bullmq");
 const { executeCode } = require("./executor.js");
 const { workerConnection } = require("./queue.js");
+const { setRoomIdle } = require("./roomExecutionState.js")
 
+let executionWorker = null;
+
+function initializeWorker(io){
 //Job processor - this function is called for every job in the queue
 //job.data contains everything the Socket.IO handler put in when adding the job
 async function processExecution(job){
@@ -18,7 +22,7 @@ async function processExecution(job){
 }
 
 //Creating the worker concurrency:5 means max 5 docker containers running simultaneously
-const executionWorker = new Worker("code-execution", processExecution, {
+executionWorker = new Worker("code-execution", processExecution, {
     connection: workerConnection,
     concurrency: 5,
 });
@@ -32,19 +36,43 @@ executionWorker.on("active",(job) => {
 });
 
 executionWorker.on("completed",(job,result)=>{
-    console.log(`[Worker] Job ${job.id} completed - stdout length: ${result.stdout?.length}`);
-    //io.to(`room:${job.data.roomId}`).emit("execution:error",{ message: err.message })
+    const { roomId, username} = job.data;
+
+    //Mark room as idle so next execution can be triggered
+    setRoomIdle(roomId);
+
+    //Broadcasting result to all the users in the room
+    io.to(roomId).emit("execution:result",{
+        stdout: result.stdout,
+        stderr: result.stderr,
+        status: result.status,
+        executionTime: result.executionTime,
+        language: job.data.language,
+        triggeredBy:username,
+        timestamp: Date.now(),
+    });
 });
 
 executionWorker.on("failed", (job, err) => {
-  console.error(`[Worker] Job ${job.id} failed —`, err.message);
-  // io.to(`room:${job.data.roomId}`).emit("execution:error", { message: err.message })
+    const { roomId, username } = job.data;
+
+    //Mark room as idle even on failure
+    setRoomIdle(roomId);
+
+    io.to(roomId).emit("execution:error",{
+        message:"Execution failed unexpectedly.Please try again.",
+        triggeredBy: username,
+    });
+    console.error(`[Worker] Job ${job.id} failed -`,err.message);
 });
 
 executionWorker.on("error",(err)=>{
     console.error("[Worker] Worker error -",err.message);
 });
+console.log("[Worker] Worker initialized and listening...");
+return executionWorker;
+}
 
-module.exports = { executionWorker };
+module.exports = { initializeWorker };
 
 
