@@ -437,7 +437,7 @@ hello();
                 onClick={runCode}
                 disabled={isRunning}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-medium transition-colors ${
-                  isRunning ? "bg-gray-600 cursor-not-allowed" : "bg-green-500 hover:bg-green-300"
+                  isRunning ? "bg-gray-600 cursor-not-allowed" : "bg-green-500 hover:bg-green-700"
                 }`}
               >
                 {isRunning ? (
@@ -555,27 +555,27 @@ hello();
         <div className="w-72 shrink-0 flex flex-col bg-white/5 border border-white/10 rounded-xl overflow-hidden">
 
           {/* Tab switcher — matches reference screenshot style */}
-          <div className="flex border-b border-white/10 shrink-0">
-            <button
-              onClick={() => setSidebarTab("participants")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                sidebarTab === "participants"
-                  ? "text-white bg-white/5 border-b-2 border-blue-400"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-              }`}
-            >
-              Participants
-            </button>
-            <button
-              onClick={() => setSidebarTab("chat")}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                sidebarTab === "chat"
-                  ? "text-white bg-white/5 border-b-2 border-blue-400"
-                  : "text-gray-400 hover:text-gray-200 hover:bg-white/5"
-              }`}
-            >
+          <div className="relative flex p-1 bg-white/5 mx-3 mt-3 rounded-xl shrink-0 overflow-hidden">
+           {/* The sliding background */}
+           <div className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-blue-500 rounded-lg transition-transform duration-300 ease-in-out shadow-lg ${
+            sidebarTab ==="chat" ? "translate-x-full" : "translate-x-0"
+           }`}/>
+
+           {/* Button 1: Participants */}
+           <button onClick={() => setSidebarTab("participants")}
+            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
+              sidebarTab === "participants" ? "text-white" : "text-gray-400 hover:text-gray-200"
+            }`}>
+            Participants
+           </button>
+
+           {/* Button 2:Chat */}
+           <button onClick={() => setSidebarTab("chat")}
+            className={`relative z-10 flex-1 py-2 text-sm font-medium transition-colors duration-300 ${
+              sidebarTab === "chat" ? "text-white" : "text-gray-400 hover:text-gray-200"
+            }`}>
               Chat
-            </button>
+           </button>
           </div>
 
           {/* Participants panel */}
