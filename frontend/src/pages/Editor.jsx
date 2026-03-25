@@ -10,9 +10,10 @@ import {
   ChevronDown,
   Play,
 } from "lucide-react";
+import logo from '../assets/logo.png';
 import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
-import { validateRoom,leaveRoom } from "../api/api";
+import { validateRoom } from "../api/api";
 import { io } from "socket.io-client";//socket io in frontend
 import Split from "react-split";
 import * as Y from "yjs";
@@ -405,7 +406,7 @@ useEffect(()=>{
             {/* Logo */}
             <div className="flex items-center gap-2">
               <img
-                src="https://i.pinimg.com/736x/5d/12/d0/5d12d0e14bd2110a430aa44555a2bdcb.jpg"
+                src={logo}
                 className="w-6 h-6 rounded-full"
               />
               <div className="font-bold text-lg">
@@ -446,7 +447,7 @@ useEffect(()=>{
           {/* SIDEBAR*/}
           <div className="h-full flex flex-col overflow-hidden min-h-0">
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex-shrink-0 overflow-y-auto max-h-64">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex-shrink-0 max-h-64">
            <div className="flex items-center gap-2 mb-3">
               <Users size={20} className="text-gray-400" />
               <h2 className="font-semibold text-lg">Participants</h2>
@@ -679,13 +680,13 @@ useEffect(()=>{
               </div>
 
               {/* Output Panel */}
-              <div className="h-40 bg-black/40 border-t border-white/10 px-4 py-3">
-                <div className="flex justify-between items-center mb-2">
+              <div className="h-40 bg-black/40 border-t border-white/10 px-4 py-3 flex flex-col">
+                <div className="flex justify-between items-center mb-2 shrink-0">
                   <span className="text-xs text-gray-300 uppercase">Output</span>
                   <span className="text-[10px] text-gray-500">Console</span>
                 </div>
 
-                <pre className={`text-xs whitespace-pre-wrap font-mono ${
+                <pre className={`text-xs whitespace-pre-wrap font-mono overflow-y-auto flex-1 ${
                   output.includes("Error") || output.includes("stderr") || output.includes("runtime_error") || output.includes("compile_error")
                     ? "text-red-400"
                     : "text-green-400"

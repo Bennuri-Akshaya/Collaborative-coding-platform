@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { validateRoom } from "../api/api";
 
 export default function Rooms() {
   const navigate = useNavigate();

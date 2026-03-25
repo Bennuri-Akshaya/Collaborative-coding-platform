@@ -24,7 +24,7 @@ export default function Hero() {
             <div
         className="absolute inset-0 opacity-30"
         style={{
-          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.15), transparent 40%)`,
+          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(158, 182, 220, 0.15), transparent 40%)`,
         }}
       />
       <div className="absolute top-20 left-4 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
@@ -44,7 +44,7 @@ export default function Hero() {
             </h1>
             <p className="text-md sm:text-base lg:text-lg text-gray-400 max-w-2xl mx-auto lg:mx-0 mb-4 sm:mb-4 animate-in slide-in-from-bottom duration-700 delay-200 leading-relaxed">Collaborate on code instantly with your team in real time. Create or join rooms, share ideas effortlessly, and build smarter together. CoDev makes collaboration seamless so you can stay focused and keep creating.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 mb-8 sm:mb-12 animate-in slide-in-from-bottom duration-700 delay-300">
-            <button onClick={() => navigate('/auth')} className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-400 via-cyan-500 to-blue-400 rounded-full font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-102 flex items-center justify-center space-x-2">
+            <button onClick={() => navigate('/auth')} className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 rounded-full font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-102 flex items-center justify-center space-x-2">
                 <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 sm:h-5 group-hover:translate-transform duration-300"/>
             </button>

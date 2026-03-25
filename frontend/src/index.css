@@ -53,6 +53,24 @@
     }
 }
 
+/* Keep this global so the "white flash" is gone forever */
+html, body {
+  background-color: #02061c; /* Slate-950 */
+  margin: 0;
+  padding: 0;
+  color: white;
+}
+
+/* Apply this class ONLY to your Editor/Auth/Room containers */
+.full-bleed-layout {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  overscroll-behavior: none;
+}
+
 /* Custom Dark Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

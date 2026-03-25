@@ -2,7 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Rooms from './pages/Rooms.jsx';
 import CreateRoom from './pages/CreateRoom';
-import Editor from './pages/Editor';
+// import Editor from './pages/Editor';
+import Editor from './pages/editor1.jsx'
 import Auth from './pages/Auth.jsx';
 import ProtectedRoute from './pages/ProtectedRoute.jsx';
 

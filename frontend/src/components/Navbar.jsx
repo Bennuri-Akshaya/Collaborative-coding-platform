@@ -1,5 +1,6 @@
 import { Menu,X } from 'lucide-react';
 import { useState } from 'react';
+import logo from '../assets/logo.png';
 
 export default function Navbar() {
     const [mobileMenuisOpen, setMobileMenuIsOpen] = useState(false);
@@ -9,7 +10,7 @@ export default function Navbar() {
                 <div className="flex justify-between items-center h-14 sm:h-16 md:h-20">
                     <div className="flex items-center space-x-1 group cursor-pointer">
                     <div>
-                        <img src="https://i.pinimg.com/736x/5d/12/d0/5d12d0e14bd2110a430aa44555a2bdcb.jpg" alt="CoDev" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full" />
+                        <img src={logo} alt="CoDev" className="w-6 h-6 sm:w-8 sm:h-8 rounded-full" />
                     </div>
                     <span className="text-lg sm:text-xl md:text-2xl font-medium">
                         <span className="text-white">Co</span>
