@@ -340,10 +340,10 @@ hello();
 
   //Render
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col">
+    <div className="h-screen bg-slate-950 text-white flex flex-col overflow-hidden">
 
       {/* Nav bar in the editor page */}
-      <div className="bg-white/5 border-b border-white/10 backdrop-blur-sm">
+      <div className="h-16 bg-white/5 border-b border-white/10 shrink-0 backdrop-blur-sm">
         <div className="px-6 max-w-full mx-auto">
           <div className="flex justify-between items-center h-16">
 
@@ -380,7 +380,7 @@ hello();
       </div>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 flex overflow-hidden px-6 py-4 gap-4 min-h-0">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden p-4 md:px-6 md:py-4 gap-4 min-h-0 items-stretch">
 
         {/* ── LEFT: Editor + Output ── */}
         <div className="flex-1 flex flex-col min-w-0 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
@@ -531,8 +531,8 @@ hello();
             </div>
 
             {/* Output Panel */}
-            <div className="flex flex-col bg-black/40 min-h-0">
-              <div className="flex justify-between items-center px-4 py-2 shrink-0 border-b border-white/5">
+            <div className="flex-1 flex flex-col bg-black/40 min-h-0 overflow-hidden">
+              <div className="flex justify-between items-center px-4 py-2 shrink-0 border-b border-white/5 bg-black/20">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">
                     Output
@@ -541,9 +541,10 @@ hello();
                 <span className="text-[10px] text-gray-600 uppercase tracking-wider">Console</span>
               </div>
               <pre
-                className={`flex-1 overflow-y-auto px-4 py-3 text-xs font-mono whitespace-pre-wrap ${
-                  isError ? "text-red-400" : output.startsWith("//") ? "text-gray-500 italic" : "text-green-400"
+                className={`flex-1 overflow-y-auto max-h-full px-4 py-3 text-xs font-mono whitespace-pre-wrap ${
+                  isError ? "text-red-400 bg-red-900/10" : output.startsWith("//") ? "text-gray-500 italic" : "text-green-400"
                 }`}
+                style={{ maxHeight:'100%' }}
               >
                 {output}
               </pre>
