@@ -1,4 +1,5 @@
 import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import logo from '../assets/logo.png';
 
 const footerLinks = {
   Product: ["Features", "Pricing", "Security", "Roadmap", "Changelog"],
@@ -23,7 +24,7 @@ export default function Footer() {
             <div className="flex items-center justify-center sm:justify-start space-x-2 mb-3 sm:mb-4">
               <div className="rounded-lg">
                 <img
-                  src="https://i.pinimg.com/736x/5d/12/d0/5d12d0e14bd2110a430aa44555a2bdcb.jpg" alt="CoDev"
+                  src={logo} alt="CoDev"
                   className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
                 />
               </div>

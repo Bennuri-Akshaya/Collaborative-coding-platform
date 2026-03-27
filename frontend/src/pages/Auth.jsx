@@ -2,6 +2,7 @@ import { useState,useEffect } from "react";
 import { useNavigate,useLocation } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { signIn, signUp } from "../api/api";
+import logo from '../assets/logo.png';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -103,7 +104,8 @@ useEffect(() => {
           <div className="p-6 pb-4 text-center border-b border-white/10">
             <div className="flex items-center justify-center gap-2 mb-2">
               <img
-                src="https://i.pinimg.com/736x/5d/12/d0/5d12d0e14bd2110a430aa44555a2bdcb.jpg"
+              
+                src={logo}
                 alt="CoDev"
                 className="w-8 h-8 rounded-full"
               />
