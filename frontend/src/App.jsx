@@ -6,12 +6,16 @@ import CreateRoom from './pages/CreateRoom';
 import Editor from './pages/editor1.jsx'
 import Auth from './pages/Auth.jsx';
 import ProtectedRoute from './pages/ProtectedRoute.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/forgot-password" element={<ForgotPassword/>}/>
+      <Route path="/reset-password/:token" element={<ResetPassword/>}/>
       <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
       <Route path="/create-room" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
       <Route path="/editor/:roomId" element={<ProtectedRoute><Editor /></ProtectedRoute>} />

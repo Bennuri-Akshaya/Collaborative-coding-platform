@@ -7,6 +7,7 @@ Content-Type:application/json
 
 {
     "username" : "Aksh",
+    "email":"akshaya0785@gmail.com",
     "password" : "aksh1234"
 }
 
@@ -25,6 +26,7 @@ Content-Type:application/json
 
 {
     "username" : "Dino",
+    "email": "dino12@gmail.com",
     "password" : "dino1234"
 }
 
@@ -89,4 +91,12 @@ Content-Type: application/json
 
 {
     "userId": "69a2ee261aa1c606960c1d52"
+}
+
+###Testing the reset mail to be sent
+POST http://localhost:5000/auth/forgot-password
+Content-Type: application/json
+
+{
+    "email": "akshaya0785@gmail.com"
 }

@@ -199,6 +199,7 @@ useEffect(() => {
                   </label>
                   <button
                     type="button"
+                    onClick={() => navigate("/forgot-password")}
                     className="text-blue-400 hover:text-blue-300 transition-colors"
                   >
                     Forgot password?
@@ -244,6 +245,26 @@ useEffect(() => {
                     }
                     className="w-full bg-white/5 border border-white/10 text-white placeholder-gray-400 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
+                </div>
+
+                <div>
+                  <label 
+                    htmlFor="signup-email"
+                    className="block text-sm font-medium text-gray-300 mb-2"
+                  >
+                    Email Address
+                  </label>
+                  <input 
+                    id="signup-email"
+                    type="email"
+                    required
+                    placeholder="your@gmail.com"
+                    value={signUpData.email}
+                    onChange={(e) =>
+                      setSignUpData({ ...signUpData, email: e.target.value })
+                    }
+                    className="w-full bg-white/5 border border-white/10 text-white placeholder-gray-400 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
                 </div>
 
                 <div>
