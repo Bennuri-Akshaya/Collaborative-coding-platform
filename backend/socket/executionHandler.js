@@ -6,6 +6,7 @@ const {
 } = require("../execution/roomExecutionState.js");
 const { checkUserLimit, checkRoomLimit } = require("../middleware/rateLimiter.js");
 const { LANGUAGES } = require('../config/languages.js')
+const {startTerminal, handleInput, stopTerminal} = require("../execution/terminalManager.js")
 
 function registerExecutionHandler(io,socket){
     socket.on("execution:request", async (data) =>{
@@ -105,6 +106,23 @@ function registerExecutionHandler(io,socket){
                 message: "Failed to queue execution.Please try again.",
             })
         }
+    });
+
+    //Terminal part handling
+    // socket.on("terminal:start",({ roomId, language, code}) => {
+    //     startTerminal(io,socket,roomId,language,code);
+    // });
+    socket.on("terminal:start", ({ roomId, language, code}) => {
+        console.log("terminal:start triggered", { roomId, language});
+       startTerminal(io, socket, roomId, language, code);
+    });
+
+    socket.on("terminal:input",({ roomId, data }) => {
+        handleInput(roomId,data); 
+    });
+
+    socket.on("terminal:stop",({ roomId }) => {
+        stopTerminal(roomId);
     });
 }
 

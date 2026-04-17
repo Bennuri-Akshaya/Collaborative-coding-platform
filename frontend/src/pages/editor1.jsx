@@ -19,6 +19,22 @@ import Split from "react-split";
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "y-monaco";
+import { Terminal } from "xterm";
+import "xterm/css/xterm.css";
+
+//auto detecting the user code if it needs user input if yes terminal tab must be active if not it runs in output tab
+function detectInputRequired(code,language){
+  if(!code) return false;
+
+  const patterns = {
+    python: /input\s*\(|sys\.stdin/,
+    javascript: /prompt\s*\(|readline|process\.stdin/,
+    java: /Scanner|BufferedReader|System\.in/,
+    cpp: /cin\s*>>|getline\s*\(|scanf/,
+    c: /scanf\s*\(|gets\s*\(|fgets/,
+  };
+  return patterns[language]?.test(code) || false;
+}
 
 function ChatPanel({ socket, roomId, username }) {
   const [messages, setMessages] = useState([]);
@@ -175,6 +191,7 @@ export default function EditorPage() {
   const providerRef = useRef(null);
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);
+  const termRef = useRef(null);
 
   const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
@@ -184,6 +201,8 @@ export default function EditorPage() {
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const [languages, setLanguages] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [executionTab, setExecutionTab] = useState("output");
+  const [needsInput, setNeedsInput ] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -198,6 +217,8 @@ export default function EditorPage() {
 
   // Socket
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if(!token) return;
     socketRef.current = io("http://localhost:5000");
 
     socketRef.current.on("connect", () => {
@@ -241,8 +262,69 @@ export default function EditorPage() {
       setOutput(`// Error: ${message}`);
     });
 
+    socketRef.current.on("auth:error", (data) => {
+  alert(data.message);
+  localStorage.removeItem("token");
+});
+
     return () => socketRef.current.disconnect();
   }, [roomId]);
+
+  //Terminal
+  useEffect(() => {
+  if (executionTab !== "terminal") return;
+  if (!socketRef.current) return;
+
+  //prevent multiple terminals
+  if (termRef.current) return;
+
+  const term = new Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+  });
+
+  term.open(document.getElementById("terminal"));
+  termRef.current = term;
+
+  //Receive the output
+  socketRef.current.on("terminal:output", (data) => {
+    term.write(data);
+  });
+
+  //Send input and also show the typed text by the user 
+  term.onData((data) => {
+    if(!socketRef.current) return;
+
+    //enter key 
+    if(data === "\r"){
+      socketRef.current.emit("terminal:input",{
+      roomId,
+      data:"\r",
+    });
+    return;
+    }else{
+      socketRef.current.emit("terminal:input",{
+      roomId,
+      data,
+    });
+    }
+    });
+
+  //CLEANUP FUNCTION
+  return () => {
+    socketRef.current.emit("terminal:stop",{ roomId });
+
+    if(socketRef.current){
+      socketRef.current.off("terminal:output");
+    }
+
+    if (termRef.current) {
+      termRef.current.dispose();
+      termRef.current = null;
+    }
+  };
+
+}, [executionTab]);
 
   // Yjs
   useEffect(() => {
@@ -323,13 +405,43 @@ hello();
     console.log("runCode called");
     console.log("socket:", socketRef.current?.id);
     console.log("isRunning:", isRunning);
-    if (!socketRef.current || isRunning) return;
+
+    if (!socketRef.current) return;
+
     const code = ydocRef.current?.getText("monaco").toString();
     if (!code || code.trim().length === 0) {
       setOutput("// Nothing to run.");
       return;
     }
-    socketRef.current.emit("execution:request", { roomId, language, code, stdin: "" });
+    
+    const needsInput = detectInputRequired(code,language);
+
+    if(needsInput){
+      console.log("Input detected -> Terminal");
+
+      setExecutionTab("terminal");
+
+      setOutput("Input detected. Running in Terminal mode...\n");
+
+      setTimeout(() => {
+        socketRef.current.emit("terminal:start",{
+          roomId,
+          language,
+          code,
+        });
+      },100);
+    }else{
+      console.log("No input -> Output");
+
+      setExecutionTab("output");
+
+      socketRef.current.emit("execution:request",{
+        roomId,
+        language,
+        code,
+        stdin: "",
+      });
+    }
   };
 
   const isError =
@@ -532,23 +644,74 @@ hello();
 
             {/* Output Panel */}
             <div className="flex-1 flex flex-col bg-black/40 min-h-0 overflow-hidden">
-              <div className="flex justify-between items-center px-4 py-2 shrink-0 border-b border-white/5 bg-black/20">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                    Output
-                  </span>
-                </div>
-                <span className="text-[10px] text-gray-600 uppercase tracking-wider">Console</span>
-              </div>
-              <pre
-                className={`flex-1 overflow-y-auto max-h-full px-4 py-3 text-xs font-mono whitespace-pre-wrap ${
-                  isError ? "text-red-400 bg-red-900/10" : output.startsWith("//") ? "text-gray-500 italic" : "text-green-400"
-                }`}
-                style={{ maxHeight:'100%' }}
-              >
-                {output}
-              </pre>
-            </div>
+
+            <div className="flex justify-between items-center px-4 py-2 shrink-0 border-b border-white/5 bg-black/20">
+              {/* 🔥 LEFT: Output | Terminal buttons */}
+               <div className="relative flex items-center bg-white/5 rounded-md p-0.5">
+
+               {/* Sliding background */}
+               <div 
+                 className={`absolute top-0.5 bottom-0.5 left-0.5 w-1/2 bg-blue-500 rounded-md transition-transform duration-300 ${
+                   executionTab === "terminal" ? "translate-x-full" : "translate-x-0"
+                  }`}
+                />
+
+               {/* Output button */}
+              <button
+              onClick={() => setExecutionTab("output")}
+              className={`relative z-10 px-3 py-1 text-xs font-medium ${
+          executionTab === "output"
+            ? "text-white"
+            : "text-gray-400 hover:text-gray-200"
+        }`}
+      >
+        Output
+      </button>
+
+      {/* Terminal button */}
+      <button
+        onClick={() => setExecutionTab("terminal")}
+        className={`relative z-10 px-3 py-1 text-xs font-medium ${
+          executionTab === "terminal"
+            ? "text-white"
+            : "text-gray-400 hover:text-gray-200"
+        }`}
+      >
+        Terminal
+      </button>
+
+    </div>
+
+    {/* <span className="text-sm text-white bold tracking-wider">
+      If the code requires a user input.Run it in the terminal!
+    </span> */}
+
+    {/* RIGHT: Console label (UNCHANGED) */}
+    <span className="text-[10px] text-gray-600 uppercase tracking-wider">
+      Console
+    </span>
+
+  </div>
+
+  {/* 🔥 CONDITIONAL RENDER */}
+  {executionTab === "output" ? (
+    <pre
+      className={`flex-1 overflow-y-auto max-h-full px-4 py-3 text-xs font-mono whitespace-pre-wrap ${
+        isError
+          ? "text-red-400 bg-red-900/10"
+          : output.startsWith("//")
+          ? "text-gray-500 italic"
+          : "text-green-400"
+      }`}
+      style={{ maxHeight: "100%" }}
+    >
+      {output}
+    </pre>
+  ) : (
+    <div id="terminal" className="flex-1 w-full h-full overflow-y-auto" />
+  )}
+
+</div>
           </Split>
         </div>
 

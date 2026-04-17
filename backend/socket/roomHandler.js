@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const Room = require("../models/Room");           
-const ChatMessage = require("../models/ChatMessage"); 
+const ChatMessage = require("../models/ChatMessage");
+const { stopTerminal } = require("../execution/terminalManager.js")
 
 function registerRoomHandler(io, socket, rooms) {
   socket.on("join-room", async ({ roomId, token }) => {
@@ -48,6 +49,12 @@ function registerRoomHandler(io, socket, rooms) {
 
     } catch (error) {
       console.error("Invalid token in socket:", error);
+      socket.emit("auth:error", {
+    message: "Session expired. Please login again.",
+  });
+
+  socket.disconnect(); // 🔥 THIS IS THE FIX
+  return;
     }
   });
 
@@ -60,6 +67,11 @@ function registerRoomHandler(io, socket, rooms) {
       rooms[roomId] = rooms[roomId].filter(
         (p) => p.socketId !== socket.id
       );
+
+      if(rooms[roomId].length === 0){
+        console.log(`Stopping terminal for empty rooms: ${roomId}`)
+        stopTerminal(roomId);
+      }
 
       if (leavingUser) {
         io.to(roomId).emit("chat:receive", {

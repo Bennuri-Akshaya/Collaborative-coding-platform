@@ -18,13 +18,13 @@ router.post("/signup",async(req,res)=>{
         }
 
         //Check if user already exists
-        const userExists = await User.findOne({ username },{ email });
+        const userExists = await User.findOne( {$or:[{ username },{ email }]});
         if(userExists){
-            return res.status(400).json({message: "Username already exists,Try Signing in"})
+            return res.status(400).json({message: "Username or email already exists,Try Signing in"})
         }
 
         //Hash password
-        const hashedPassword = await argon2.hash(password,10);
+        const hashedPassword = await argon2.hash(password);
 
         //Create new user
         const user = await User.create({

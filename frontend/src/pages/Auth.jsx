@@ -18,6 +18,7 @@ export default function Auth() {
   // Sign Up form state
   const [signUpData, setSignUpData] = useState({
     username: "",
+    email:"",
     password: "",
     confirmPassword: "",
   });
@@ -47,7 +48,6 @@ export default function Auth() {
     alert("Sign in failed. Please check your credentials.");
   }
 };
-
   const handleSignUpSubmit = async (e) => {
   e.preventDefault();
 
@@ -61,7 +61,7 @@ export default function Auth() {
     return;
   }
   try{
-    const res = await signUp({ username: signUpData.username, password: signUpData.password });
+    const res = await signUp({ username: signUpData.username,email:signUpData.email, password: signUpData.password });
     localStorage.setItem("token", res.data.token);
     localStorage.setItem("username", res.data.username);
     navigate(redirectPath, { replace: true });

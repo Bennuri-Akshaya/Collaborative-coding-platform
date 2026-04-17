@@ -21,9 +21,9 @@ const features = [
   },
   {
     icon: Zap,
-    title: "Code Snippets Library",
+    title: "Run Code. See Results. Instantly.",
     description:
-      "Save and organize frequently used code snippets. Access your collection instantly for faster development.",
+      "Experience real-time code execution powered by isolated containers. Safe, fast, and built for collaborative development.",
   },
   {
     icon: Globe,
