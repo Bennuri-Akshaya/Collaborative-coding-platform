@@ -1,53 +1,26 @@
-// // creating a small compatible server ourselves
+const http = require("http");
+const WebSocket = require("ws");
+const setupWSConnection = require("y-websocket").setupWSConnection;
 
-// import http from "http";
-// import { WebSocketServer } from "ws";
-// import * as Y from "yjs";
-// import { WebsocketProvider } from "y-websocket";
+const port = process.env.PORT || 10000;
 
-// const port = 1234;
-// const docs = new Map();
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Yjs server running");
+});
 
-// const server = http.createServer();
-// const wss = new WebSocketServer({ server });
+const wss = new WebSocket.Server({ noServer: true });
 
-// wss.on("connection", (ws, req) => {
-//   const roomName = req.url.slice(1) || "default";
+server.on("upgrade", (request, socket, head) => {
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    wss.emit("connection", ws, request);
+  });
+});
 
-//   if (!docs.has(roomName)) {
-//     docs.set(roomName, new Y.Doc());
-//   }
-
-//   const doc = docs.get(roomName);
-
-//   const provider = new WebsocketProvider(
-//     `ws://localhost:${port}`,
-//     roomName,
-//     doc
-//   );
-
-//   ws.on("close", () => {
-//     provider.destroy();
-//   });
-// });
-
-// server.listen(port, () => {
-//   console.log(`Yjs WebSocket server running on ws://localhost:${port}`);
-// });
-
-const { createServer } = require('http');
-const { WebSocketServer } = require('ws');
-const setupWSConnection = require('y-websocket').setupWSConnection;
-
-const port = process.env.PORT || 1234;
-
-const server = createServer();
-const wss = new WebSocketServer({ server });
-
-wss.on('connection', (conn, req) => {
+wss.on("connection", (conn, req) => {
   setupWSConnection(conn, req);
 });
 
 server.listen(port, () => {
-  console.log(`Yjs server running on port ${port}`);
+  console.log("Yjs server running on port", port);
 });
