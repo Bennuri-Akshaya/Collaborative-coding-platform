@@ -29,11 +29,20 @@ const PORT = process.env.PORT || 5000;
 
 connectDB();
 
+const WebSocket = require('ws');
+const { setupWSConnection } = require('y-websocket/bin/utils');
+
+// app.use(cors({
+//     origin: process.env.CLIENT_URL,
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     credentials: true,
+//     allowedHeaders: ["Content-Type", "Authorization"],  
+// }));
+
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],  
 }));
 
 app.use(express.json());
@@ -52,14 +61,27 @@ createBullBoard({
 app.use("/admin/queues", serverAdapter.getRouter());
 
 //Socket.io created
+// const io = new Server(server,{
+//     cors:{
+//         origin: process.env.CLIENT_URL,
+//         methods: ["GET", "POST", "PUT", "DELETE"],
+//         credentials: true,//Allows cookies to be sent with requests, enabling session management and authentication features.
+//         allowedHeaders: ["Content-Type", "Authorization"],  
+//     }
+// })
+//socket.io
 const io = new Server(server,{
     cors:{
-        origin: process.env.CLIENT_URL,
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        credentials: true,//Allows cookies to be sent with requests, enabling session management and authentication features.
-        allowedHeaders: ["Content-Type", "Authorization"],  
+        origin: "*",
+        methods: ["GET", "POST"]
     }
-})
+});
+
+const wss = new WebSocket.Server({ server });
+
+wss.on('connection', (conn, req) => {
+  setupWSConnection(conn, req);
+});
 
 //Initialize worker with io before sockets
 initializeWorker(io);
@@ -68,7 +90,7 @@ initializeWorker(io);
 initializeSockets(io);
 
 async function startServer() {
-  await pullImages();                    // ← ADDED — pull Docker images first
+  //await pullImages();                    // ← ADDED — pull Docker images first
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

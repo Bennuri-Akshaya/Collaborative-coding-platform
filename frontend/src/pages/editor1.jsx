@@ -331,7 +331,7 @@ export default function EditorPage() {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
 
-    const provider = new WebsocketProvider("ws://localhost:1234", roomId, ydoc);
+    const provider = new WebsocketProvider("ws://localhost:5000", roomId, ydoc);
     providerRef.current = provider;
 
     provider.on("status", (e) => {
