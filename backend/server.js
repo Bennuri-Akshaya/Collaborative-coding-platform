@@ -21,6 +21,8 @@ const { initializeWorker } = require("./execution/worker.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
 
+const runCodeRoute = require("./routes/runCode.js");
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
@@ -38,7 +40,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/rooms', authMiddleware, roomRoutes);
 app.use("/api/execution", require("./routes/executionRoutes.js"));
-
+app.use("/api",runCodeRoute)
 //Bull booard
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");
