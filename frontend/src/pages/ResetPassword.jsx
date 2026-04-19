@@ -20,7 +20,7 @@ export default function ResetPassword() {
             return;
         }
         try{
-            const res = await fetch(`http://localhost:5000/auth/reset-password/${token}`,{
+            const res = await fetch(`https://collab-code-codev.onrender.com/auth/reset-password/${token}`,{
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

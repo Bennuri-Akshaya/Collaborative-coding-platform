@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-    baseURL:'http://localhost:5000',
+    baseURL:'https://collab-code-codev.onrender.com',
 })
 
 //Add token to request headers

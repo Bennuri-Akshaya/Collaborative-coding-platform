@@ -219,7 +219,7 @@ export default function EditorPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if(!token) return;
-    socketRef.current = io("http://localhost:5000");
+    socketRef.current = io("https://collab-code-codev.onrender.com");
 
     socketRef.current.on("connect", () => {
       console.log("Connected to socket server with id: " + socketRef.current.id);
@@ -331,7 +331,7 @@ export default function EditorPage() {
     const ydoc = new Y.Doc();
     ydocRef.current = ydoc;
 
-    const provider = new WebsocketProvider("ws://localhost:5000", roomId, ydoc);
+    const provider = new WebsocketProvider("ws://localhost:1234", roomId, ydoc);
     providerRef.current = provider;
 
     provider.on("status", (e) => {
@@ -375,7 +375,7 @@ hello();
 
   // Fetch languages from the backend
   useEffect(() => {
-    fetch("http://localhost:5000/api/execution/languages")
+    fetch("https://collab-code-codev.onrender.com/api/execution/languages")
       .then((res) => res.json())
       .then((data) => {
         setLanguages(data);

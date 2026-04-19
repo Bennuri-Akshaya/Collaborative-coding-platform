@@ -17,7 +17,7 @@ export default function ForgotPassword(){
 
         setLoading(true);
         try{
-            const res = await fetch("http://localhost:5000/auth/forgot-password",{
+            const res = await fetch("https://collab-code-codev.onrender.com/auth/forgot-password",{
                 method: "POST",
                 headers:{
                     "Content-Type": "application/json",
