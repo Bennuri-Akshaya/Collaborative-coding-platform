@@ -219,7 +219,7 @@ export default function EditorPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if(!token) return;
-    socketRef.current = io("https://collab-code-codev.onrender.com");
+    socketRef.current = io(import.meta.env.VITE_BACKEND_URL);
 
     socketRef.current.on("connect", () => {
       console.log("Connected to socket server with id: " + socketRef.current.id);
@@ -375,7 +375,7 @@ hello();
 
   // Fetch languages from the backend
   useEffect(() => {
-    fetch("https://collab-code-codev.onrender.com/api/execution/languages")
+    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/execution/languages`)
       .then((res) => res.json())
       .then((data) => {
         setLanguages(data);
