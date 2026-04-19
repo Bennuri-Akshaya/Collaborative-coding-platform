@@ -29,9 +29,6 @@ const PORT = process.env.PORT || 5000;
 
 connectDB();
 
-const WebSocket = require('ws');
-const { setupWSConnection } = require('y-websocket/bin/utils');
-
 // app.use(cors({
 //     origin: process.env.CLIENT_URL,
 //     methods: ["GET", "POST", "PUT", "DELETE"],
@@ -42,7 +39,6 @@ const { setupWSConnection } = require('y-websocket/bin/utils');
 app.use(cors({
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
 }));
 
 app.use(express.json());
@@ -75,12 +71,6 @@ const io = new Server(server,{
         origin: "*",
         methods: ["GET", "POST"]
     }
-});
-
-const wss = new WebSocket.Server({ server });
-
-wss.on('connection', (conn, req) => {
-  setupWSConnection(conn, req);
 });
 
 //Initialize worker with io before sockets
