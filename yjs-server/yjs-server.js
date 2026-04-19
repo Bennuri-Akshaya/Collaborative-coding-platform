@@ -35,20 +35,19 @@
 //   console.log(`Yjs WebSocket server running on ws://localhost:${port}`);
 // });
 
-const http = require("http");
-const WebSocket = require("ws");
-const Y = require("yjs");
-const { setupWSConnection } = require("y-websocket/bin/utils.cjs");
+const { createServer } = require('http');
+const { WebSocketServer } = require('ws');
+const setupWSConnection = require('y-websocket').setupWSConnection;
 
 const port = process.env.PORT || 1234;
 
-const server = http.createServer();
-const wss = new WebSocket.Server({ server });
+const server = createServer();
+const wss = new WebSocketServer({ server });
 
-wss.on("connection", (conn, req) => {
+wss.on('connection', (conn, req) => {
   setupWSConnection(conn, req);
 });
 
 server.listen(port, () => {
-  console.log(`Yjs websocket server running at ws://localhost:${port}`);
+  console.log(`Yjs server running on port ${port}`);
 });
