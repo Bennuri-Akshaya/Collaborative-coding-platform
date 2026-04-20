@@ -226,7 +226,7 @@ export default function EditorPage() {
     const token = localStorage.getItem("token");
     if(!token) return;
 
-    socketRef.current = io(BACKEND_URL);
+    const socket = io(BACKEND_URL);
     socketRef.current = socket;
 
     // Update state so ChatPanel re-renders with the socket
