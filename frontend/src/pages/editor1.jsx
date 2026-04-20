@@ -22,6 +22,10 @@ import { MonacoBinding } from "y-monaco";
 import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
 
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL; 
+const INTERACTIVE_URL = import.meta.env.VITE_INTERACTIVE_URL;
+
 //auto detecting the user code if it needs user input if yes terminal tab must be active if not it runs in output tab
 function detectInputRequired(code,language){
   if(!code) return false;
@@ -185,6 +189,7 @@ export default function EditorPage() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const [participants, setParticipants] = useState([]);
+  const [mainSocket,setMainSocket] = useState(null);
   const socketRef = useRef(null);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -221,7 +226,11 @@ export default function EditorPage() {
     const token = localStorage.getItem("token");
     if(!token) return;
 
-    socketRef.current = io(import.meta.env.VITA_BACKEND_URL);
+    socketRef.current = io(BACKEND_URL);
+    socketRef.current = socket;
+
+    // Update state so ChatPanel re-renders with the socket
+    setMainSocket(socket); 
 
     socketRef.current.on("connect", () => {
       console.log("Connected to Main render server with id: " + socketRef.current.id);
@@ -232,23 +241,6 @@ export default function EditorPage() {
       });
     });
 
-    const interactiveUrl = import.meta.env.VITE_INTERACTIVE_URL;
-    if(interactiveUrl){
-      interactiveSocketRef.current = io(interactiveUrl,{
-        transports: ['websocket','polling']
-      });
-      interactiveSocketRef.current.on("connect",()=>{
-        console.log("Connected to Interactive server(Local Tunnel)");
-        interactiveSocketRef.current.emit("join-room",{ roomId });
-      });
-      interactiveSocketRef.current.on("connect_error",(e)=>{
-        console.error("Interactive connection failed.Is tunnel running?",e)
-      });
-    }else{
-      console.warn("VITE_INTERACTIVE_URL not found. Terminal mode will not work.");
-    }
-
-    //Batch
     socketRef.current.on("participants-joined", (participants) => {
       console.log("Participants:", participants);
       setParticipants(participants);
@@ -285,6 +277,22 @@ export default function EditorPage() {
   alert(data.message);
   localStorage.removeItem("token");
 });
+
+  const interactiveUrl = import.meta.env.VITE_INTERACTIVE_URL;
+    if(interactiveUrl){
+      interactiveSocketRef.current = io(interactiveUrl,{
+        transports: ['websocket','polling']
+      });
+      interactiveSocketRef.current.on("connect",()=>{
+        console.log("Connected to Interactive server(Local Tunnel)");
+        interactiveSocketRef.current.emit("join-room",{ roomId });
+      });
+      interactiveSocketRef.current.on("connect_error",(e)=>{
+        console.error("Interactive connection failed.Is tunnel running?",e)
+      });
+    }else{
+      console.warn("VITE_INTERACTIVE_URL not found. Terminal mode will not work.");
+    }
 
     return () => {
       socketRef.current.disconnect();
@@ -806,7 +814,7 @@ hello();
           {/* Chat panel */}
           {sidebarTab === "chat" && (
             <ChatPanel
-              socket={socketRef.current}
+              socket={mainSocket}
               roomId={roomId}
               username={currentUsername}
             />
