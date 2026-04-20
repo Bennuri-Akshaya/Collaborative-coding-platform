@@ -1,7 +1,7 @@
 // 
 
 const { Queue } = require("bullmq");
-const IORedis = require("ioredis");
+const IORedis = require("../server.js");
 const dotenv = require('dotenv');
 dotenv.config();
 

@@ -13,14 +13,15 @@ const authMiddleware = require('./middleware/authMiddleware');
 const http = require("http");
 const { Server } = require("socket.io");
 const  { pullImages } = require('./execution/startup');
-const { createBullBoard } = require("@bull-board/api");
-const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
-const { ExpressAdapter } = require("@bull-board/express");
+// const { createBullBoard } = require("@bull-board/api");
+// const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
+// const { ExpressAdapter } = require("@bull-board/express");
 const { queueConnection,executionQueue } = require("./execution/queue.js");
-const { initializeWorker } = require("./execution/worker.js");
+// const { initializeWorker } = require("./execution/worker.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
 const { QueueEvents } = require("bullmq");
+const { queueConnection, executionQueue } = require("./execution/queue.js");
 
 const runCodeRoute = require("./routes/runCode.js");
 const { timeStamp } = require('console');
@@ -47,16 +48,16 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/rooms', authMiddleware, roomRoutes);
 app.use("/api/execution", require("./routes/executionRoutes.js"));
-// app.use("/api/test",runCodeRoute)
-//Bull booard
-const serverAdapter = new ExpressAdapter();
-serverAdapter.setBasePath("/admin/queues");
+app.use("/api/test",runCodeRoute)
+// //Bull booard
+// const serverAdapter = new ExpressAdapter();
+// serverAdapter.setBasePath("/admin/queues");
 
-createBullBoard({
-  queues: [new BullMQAdapter(executionQueue)],
-  serverAdapter,
-});
-app.use("/admin/queues", serverAdapter.getRouter());
+// createBullBoard({
+//   queues: [new BullMQAdapter(executionQueue)],
+//   serverAdapter,
+// });
+// app.use("/admin/queues", serverAdapter.getRouter());
 
 //Socket.io created
 // const io = new Server(server,{
