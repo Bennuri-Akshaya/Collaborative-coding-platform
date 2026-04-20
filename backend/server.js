@@ -16,12 +16,11 @@ const  { pullImages } = require('./execution/startup');
 const { createBullBoard } = require("@bull-board/api");
 const { BullMQAdapter } = require("@bull-board/api/bullMQAdapter");
 const { ExpressAdapter } = require("@bull-board/express");
-const { executionQueue } = require("./execution/queue.js");
+const { queueConnection,executionQueue } = require("./execution/queue.js");
 const { initializeWorker } = require("./execution/worker.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
 const { QueueEvents } = require("bullmq");
-const { queueConnection, executionQueue } = require("./execution/queue.js");
 
 const runCodeRoute = require("./routes/runCode.js");
 const { timeStamp } = require('console');
