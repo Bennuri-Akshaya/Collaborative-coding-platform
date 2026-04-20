@@ -20,8 +20,11 @@ const { executionQueue } = require("./execution/queue.js");
 const { initializeWorker } = require("./execution/worker.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
+const { QueueEvents } = require("bullmq");
+const { queueConnection, executionQueue } = require("./execution/queue.js");
 
 const runCodeRoute = require("./routes/runCode.js");
+const { timeStamp } = require('console');
 
 const app = express();
 const server = http.createServer(app);
@@ -73,8 +76,44 @@ const io = new Server(server,{
     }
 });
 
-//Initialize worker with io before sockets
-initializeWorker(io);
+const queueEvents = new QueueEvents("code-execution",{
+  connection: queueConnection,
+});
+
+//Add completed listener
+queueEvents.on("completed",async ({ jobId, returnvalue }) => {
+  console.log("Job completed:", jobId);
+
+  const job = await executionQueue.getJob(jobId);
+  if(!job) return;
+
+  const { roomId, username, language } = job.data;
+  const result = returnvalue;
+
+  io.to(roomId).emit("execution:result",{
+    stdout: result.stdout,
+    stderr: result.stderr,
+    status: result.status,
+    executionTime: result.executionTime,
+    language,
+    triggeredBy: username,
+    timeStamp:Date.now(),
+  })
+})
+//Adding failed listener
+queueEvents.on("failed",async ({ jobId, failedReason }) => {
+  console.error("Job failed:",jobId,failedReason);
+
+  const job = await executionQueue.getJob(jobId);
+  if(!job) return;
+
+  const { roomId, username } = job.data;
+
+  io.to(roomId).emit("execution:error",{
+    message: failedReason,
+    triggeredBy: username,
+  });
+});
 
 //Initialize sockets
 initializeSockets(io);

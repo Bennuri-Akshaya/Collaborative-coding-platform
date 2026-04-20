@@ -54,31 +54,31 @@ function registerExecutionHandler(io,socket){
         }
 
         //Rate limiting 
-        try{
-            await checkUserLimit(socket.userId);
-        }catch(rejRes){
-            const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000/60); //in minutes
-            socket.emit("execution:rejected",{
-                message: `You have exceeded the execution limit. Try again in ${retryAfter} minutes ${retryAfter > 1 ? "s":""}.`,
-                retryAfter: rejRes.msBeforeNext,
-            });
-            return;
-        }
+        // try{
+        //     await checkUserLimit(socket.userId);
+        // }catch(rejRes){
+        //     const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000/60); //in minutes
+        //     socket.emit("execution:rejected",{
+        //         message: `You have exceeded the execution limit. Try again in ${retryAfter} minutes ${retryAfter > 1 ? "s":""}.`,
+        //         retryAfter: rejRes.msBeforeNext,
+        //     });
+        //     return;
+        // }
 
-        try{
-            await checkRoomLimit(roomId);
-       }catch(rejRes){
-        const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000 / 60);
-        socket.emit("execution:rejected",{
-            message: `This room has exceeded the execution limit. Try againin ${retryAfter} minutes ${retryAfter > 1 ? "s":""}.`,
-            retryAfter: rejRes.msBeforeNext,
-        });
-        return;
-       }
+    //     try{
+    //         await checkRoomLimit(roomId);
+    //    }catch(rejRes){
+    //     const retryAfter = Math.ceil(rejRes.msBeforeNext / 1000 / 60);
+    //     socket.emit("execution:rejected",{
+    //         message: `This room has exceeded the execution limit. Try againin ${retryAfter} minutes ${retryAfter > 1 ? "s":""}.`,
+    //         retryAfter: rejRes.msBeforeNext,
+    //     });
+    //     return;
+    //    }
 
         try{
             //Add job to queue
-            const job = await executionQueue.add("run",{
+            const job = await executionQueue.add("execute",{
                 roomId,
                 language,
                 code,

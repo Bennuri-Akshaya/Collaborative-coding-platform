@@ -35,6 +35,7 @@ async function executeCode(languageKey, sourceCode, stdin = "") {
       AttachStdout: true,
       AttachStderr: true,
       NetworkDisabled: true,
+      User:"nobody",
       HostConfig: {
         Binds: binds,
         Memory: 128 * 1024 * 1024,
@@ -52,6 +53,7 @@ async function executeCode(languageKey, sourceCode, stdin = "") {
       stream: true,
       stdout: true,
       stderr: true,
+      stdin:true
     });
 
     const stdoutChunks = [];
@@ -100,6 +102,7 @@ async function executeCode(languageKey, sourceCode, stdin = "") {
     if (err.message === "TIMEOUT") {
       // Force kill the container on timeout
       if (container) {
+        await container.kill().catch(() => {});
         await container.remove({ force: true }).catch(() => {});
       }
       return {
@@ -110,8 +113,6 @@ async function executeCode(languageKey, sourceCode, stdin = "") {
         executionTime: EXECUTION_TIMEOUT_MS,
       };
     }
-    throw err;
-
   } finally {
     // Always cleanup container and temp directory
     if (container) {

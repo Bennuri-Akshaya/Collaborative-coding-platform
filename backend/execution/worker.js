@@ -8,6 +8,10 @@ const { setRoomIdle } = require("./roomExecutionState.js")
 
 let executionWorker = null;
 
+console.log("Starting worker...");
+require("dotenv").config();
+
+console.log("Initializing worker...");
 function initializeWorker(io){
 //Job processor - this function is called for every job in the queue
 //job.data contains everything the Socket.IO handler put in when adding the job
@@ -42,15 +46,15 @@ executionWorker.on("completed",(job,result)=>{
     setRoomIdle(roomId);
 
     //Broadcasting result to all the users in the room
-    io.to(roomId).emit("execution:result",{
-        stdout: result.stdout,
-        stderr: result.stderr,
-        status: result.status,
-        executionTime: result.executionTime,
-        language: job.data.language,
-        triggeredBy:username,
-        timestamp: Date.now(),
-    });
+    // io.to(roomId).emit("execution:result",{
+    //     stdout: result.stdout,
+    //     stderr: result.stderr,
+    //     status: result.status,
+    //     executionTime: result.executionTime,
+    //     language: job.data.language,
+    //     triggeredBy:username,
+    //     timestamp: Date.now(),
+    // });
 });
 
 executionWorker.on("failed", (job, err) => {
@@ -59,10 +63,10 @@ executionWorker.on("failed", (job, err) => {
     //Mark room as idle even on failure
     setRoomIdle(roomId);
 
-    io.to(roomId).emit("execution:error",{
-        message:"Execution failed unexpectedly.Please try again.",
-        triggeredBy: username,
-    });
+    // io.to(roomId).emit("execution:error",{
+    //     message:"Execution failed unexpectedly.Please try again.",
+    //     triggeredBy: username,
+    // });
     console.error(`[Worker] Job ${job.id} failed -`,err.message);
 });
 
@@ -71,6 +75,21 @@ executionWorker.on("error",(err)=>{
 });
 console.log("[Worker] Worker initialized and listening...");
 return executionWorker;
+}
+
+if (require.main === module) {
+  console.log("Running worker standalone...");
+
+  // Dummy io object (since no Socket.IO in local worker)
+  const dummyIO = {
+    to: () => ({
+      emit: (event, data) => {
+        console.log(`[Worker Emit] ${event}`, data);
+      }
+    })
+  };
+
+  initializeWorker(dummyIO);
 }
 
 module.exports = { initializeWorker };
