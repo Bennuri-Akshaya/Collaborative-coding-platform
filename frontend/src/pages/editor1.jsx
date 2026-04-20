@@ -316,12 +316,23 @@ export default function EditorPage() {
 
     //send input
     term.onData((data) => {
-      term.write(data);
-      socket.emit("terminal:input", {
-        roomId,
-        data,
-      });
+  if (!socket) return;
+
+  // ENTER key
+  if (data === "\r") {
+    term.write("\r\n"); // move cursor visually
+    socket.emit("terminal:input", {
+      roomId,
+      data: "\n", // 🔥 IMPORTANT (send newline to backend)
     });
+  } else {
+    term.write(data); // show typing
+    socket.emit("terminal:input", {
+      roomId,
+      data,
+    });
+  }
+});
   }, 0);
 
   //CLEANUP
