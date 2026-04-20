@@ -221,7 +221,7 @@ export default function EditorPage() {
     const token = localStorage.getItem("token");
     if(!token) return;
 
-    socketRef.current = io(BACKEND_URL);
+    socketRef.current = io(import.meta.env.VITA_BACKEND_URL);
 
     socketRef.current.on("connect", () => {
       console.log("Connected to Main render server with id: " + socketRef.current.id);
