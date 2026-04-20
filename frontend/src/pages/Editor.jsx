@@ -201,6 +201,8 @@ export default function EditorPage() {
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
   const [languages, setLanguages] = useState([]);
   const [isRunning, setIsRunning ] = useState(false);
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const INTERACTIVE_URL = import.meta.env.VITE_INTERACTIVE_URL
 
   // Add this helper function outside the component
 function getColorForUser(username) {

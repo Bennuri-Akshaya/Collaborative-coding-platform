@@ -192,6 +192,7 @@ export default function EditorPage() {
   const ydocRef = useRef(null);
   const bindingRef = useRef(null);
   const termRef = useRef(null);
+  const interactiveSocketRef = useRef(null);
 
   const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
@@ -203,6 +204,9 @@ export default function EditorPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [executionTab, setExecutionTab] = useState("output");
   const [needsInput, setNeedsInput ] = useState(false);
+
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+  const INTERACTIVE_URL = import.meta.env.VITE_INTERACTIVE_URL
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -219,7 +223,8 @@ export default function EditorPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if(!token) return;
-    socketRef.current = io(import.meta.env.VITE_BACKEND_URL);
+    socketRef.current = io(BACKEND_URL);
+    interactiveSocketRef.current = io(INTERACTIVE_URL)
 
     socketRef.current.on("connect", () => {
       console.log("Connected to socket server with id: " + socketRef.current.id);
@@ -267,13 +272,16 @@ export default function EditorPage() {
   localStorage.removeItem("token");
 });
 
-    return () => socketRef.current.disconnect();
+    return () => {
+      socketRef.current?.disconnect();
+      interactiveSocketRef.current?.disconnect();
+    }
   }, [roomId]);
 
   //Terminal
   useEffect(() => {
   if (executionTab !== "terminal") return;
-  if (!socketRef.current) return;
+  if (!interactiveSocketRef.current) return;
 
   //prevent multiple terminals
   if (termRef.current) return;
@@ -287,23 +295,23 @@ export default function EditorPage() {
   termRef.current = term;
 
   //Receive the output
-  socketRef.current.on("terminal:output", (data) => {
+  interactiveSocketRef.current.on("terminal:output", (data) => {
     term.write(data);
   });
 
   //Send input and also show the typed text by the user 
   term.onData((data) => {
-    if(!socketRef.current) return;
+    if(!interactiveSocketRef.current) return;
 
     //enter key 
     if(data === "\r"){
-      socketRef.current.emit("terminal:input",{
+      interactiveSocketRef.current.emit("terminal:input",{
       roomId,
       data:"\r",
     });
     return;
     }else{
-      socketRef.current.emit("terminal:input",{
+      interactiveSocketRef.current.emit("terminal:input",{
       roomId,
       data,
     });
@@ -312,10 +320,10 @@ export default function EditorPage() {
 
   //CLEANUP FUNCTION
   return () => {
-    socketRef.current.emit("terminal:stop",{ roomId });
+    interactiveSocketRef.current.emit("terminal:stop",{ roomId });
 
-    if(socketRef.current){
-      socketRef.current.off("terminal:output");
+    if(interactiveSocketRef.current){
+      interactiveSocketRef.current.off("terminal:output");
     }
 
     if (termRef.current) {
@@ -407,16 +415,18 @@ hello();
     console.log("isRunning:", isRunning);
 
     if (!socketRef.current) return;
+    if(isRunning) return;
 
     const code = ydocRef.current?.getText("monaco").toString();
+
     if (!code || code.trim().length === 0) {
       setOutput("// Nothing to run.");
       return;
     }
     
-    const needsInput = detectInputRequired(code,language);
+    const isInteractive = detectInputRequired(code,language);
 
-    if(needsInput){
+    if(isInteractive){
       console.log("Input detected -> Terminal");
 
       setExecutionTab("terminal");
@@ -424,7 +434,7 @@ hello();
       setOutput("Input detected. Running in Terminal mode...\n");
 
       setTimeout(() => {
-        socketRef.current.emit("terminal:start",{
+        interactiveSocketRef.current.emit("terminal:start",{
           roomId,
           language,
           code,

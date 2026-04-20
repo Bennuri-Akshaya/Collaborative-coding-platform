@@ -8,10 +8,25 @@ const { LANGUAGES } = require("../config/languages");
 const activeTerminals = new Map();
 const MAX_TERMINALS = 5;
 
+const { execSync } = require("child_process");
+
+function isDockerAvailable(){
+  try{
+    execSync("docker --version");
+    return true;
+  }catch{
+    return false;
+  }
+}
+
 function startTerminal(io, socket, roomId, language, code) {
   //limit concurrent terminals
   if (activeTerminals.size >= MAX_TERMINALS) {
     socket.emit("terminal:output", "Server busy. Try later.\n");
+    return;
+  }
+  if(!isDockerAvailable()){
+    socket.emit("terminal:output","Docker not available on this server\n");
     return;
   }
 
@@ -25,6 +40,11 @@ function startTerminal(io, socket, roomId, language, code) {
   const lang = LANGUAGES[language];
   if (!lang) {
     socket.emit("terminal:output", "Unsupported language\n");
+    return;
+  }
+
+  if(code.length > 50000){
+    socket.emit("terminal:output","Code too large\n");
     return;
   }
 
