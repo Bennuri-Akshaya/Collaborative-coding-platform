@@ -193,6 +193,7 @@ export default function EditorPage() {
   const bindingRef = useRef(null);
   const termRef = useRef(null);
   const interactiveSocketRef = useRef(null);
+  const terminalContainerRef = useRef(null);
 
   const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
@@ -284,59 +285,59 @@ export default function EditorPage() {
   if (!interactiveSocketRef.current) return;
 
   const socket = interactiveSocketRef.current;
-  const terminalContainerRef = useRef(null);
 
-  //prevent multiple terminals
+  // prevent multiple terminals
   if (termRef.current) return;
 
-  const term = new Terminal({
-    cursorBlink: true,
-    fontSize: 14,
-  });
+  let handleOutput;
 
-  if (!terminalContainerRef.current) return;
-  term.open(terminalContainerRef.current);
-  term.write("Terminal started...\r\n");
+  // Delay to ensure DOM is ready
+  const timer = setTimeout(() => {
+    if (!terminalContainerRef.current) return;
 
-  const handleOutput = (data) => {
-    console.log("Frontend received:",data);
-    if(termRef.current){
-      term.current.write(data);
-    }
-  }
-  socket.on("terminal:output",handleOutput)
-
-  //Send input and also show the typed text by the user 
-  term.onData((data) => {
-    if(!socket) return;
-
-    //enter key 
-    if(data === "\r"){
-      interactiveSocketRef.current.emit("terminal:input",{
-      roomId,
-      data:"\r",
-    });
-    return;
-    }else{
-      socket.emit("terminal:input",{
-      roomId,
-      data,
-    });
-    }
+    const term = new Terminal({
+      cursorBlink: true,
+      fontSize: 14,
     });
 
-  //CLEANUP FUNCTION
+    term.open(terminalContainerRef.current);
+    term.write("Terminal started...\r\n");
+
+    termRef.current = term;
+
+    //define handler
+    handleOutput = (data) => {
+      console.log("Frontend received:", data);
+      term.write(data);
+    };
+
+    //listen
+    socket.on("terminal:output", handleOutput);
+
+    //send input
+    term.onData((data) => {
+      socket.emit("terminal:input", {
+        roomId,
+        data,
+      });
+    });
+  }, 0);
+
+  //CLEANUP
   return () => {
-    socket.emit("terminal:stop",{ roomId });
+    clearTimeout(timer);
 
-    socket.off("terminal:output",handleOutput);
+    socket.emit("terminal:stop", { roomId });
+
+    if (handleOutput) {
+      socket.off("terminal:output", handleOutput);
+    }
 
     if (termRef.current) {
       termRef.current.dispose();
       termRef.current = null;
     }
   };
-
 }, [executionTab]);
 
   // Yjs
