@@ -193,7 +193,6 @@ export default function EditorPage() {
   const bindingRef = useRef(null);
   const termRef = useRef(null);
   const interactiveSocketRef = useRef(null);
-  const terminalContainerRef = useRef(null);
 
   const currentUsername = localStorage.getItem("username");
   const [copied, setCopied] = useState(false);
@@ -205,9 +204,6 @@ export default function EditorPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [executionTab, setExecutionTab] = useState("output");
   const [needsInput, setNeedsInput ] = useState(false);
-
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-  const INTERACTIVE_URL = import.meta.env.VITE_INTERACTIVE_URL
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -224,11 +220,11 @@ export default function EditorPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if(!token) return;
+
     socketRef.current = io(BACKEND_URL);
-    interactiveSocketRef.current = io(INTERACTIVE_URL)
 
     socketRef.current.on("connect", () => {
-      console.log("Connected to socket server with id: " + socketRef.current.id);
+      console.log("Connected to Main render server with id: " + socketRef.current.id);
       console.log("Sending token:", localStorage.getItem("token"));
       socketRef.current.emit("join-room", {
         roomId,
@@ -236,6 +232,23 @@ export default function EditorPage() {
       });
     });
 
+    const interactiveUrl = import.meta.env.VITE_INTERACTIVE_URL;
+    if(interactiveUrl){
+      interactiveSocketRef.current = io(interactiveUrl,{
+        transports: ['websocket','polling']
+      });
+      interactiveSocketRef.current.on("connect",()=>{
+        console.log("Connected to Interactive server(Local Tunnel)");
+        interactiveSocketRef.current.emit("join-room",{ roomId });
+      });
+      interactiveSocketRef.current.emit("connect_error",(e)=>{
+        console.error("Interactive connection failed.Is tunnel running?",e)
+      });
+    }else{
+      console.warn("VITE_INTERACTIVE_URL not found. Terminal mode will not work.");
+    }
+
+    //Batch
     socketRef.current.on("participants-joined", (participants) => {
       console.log("Participants:", participants);
       setParticipants(participants);
@@ -274,83 +287,56 @@ export default function EditorPage() {
 });
 
     return () => {
-      socketRef.current?.disconnect();
-      interactiveSocketRef.current?.disconnect();
+      socketRef.current.disconnect();
+      if(interactiveSocketRef.current) interactiveSocketRef.current.disconnect();
     }
   }, [roomId]);
 
   //Terminal
   useEffect(() => {
   if (executionTab !== "terminal") return;
-  if (!interactiveSocketRef.current) return;
-
-  const socket = interactiveSocketRef.current;
-
   // prevent multiple terminals
   if (termRef.current) return;
-
-  let handleOutput;
-
-  // Delay to ensure DOM is ready
-  const timer = setTimeout(() => {
-    if (!terminalContainerRef.current) return;
-
-    const term = new Terminal({
+  
+   const term = new Terminal({
       cursorBlink: true,
       fontSize: 14,
     });
 
-    term.open(terminalContainerRef.current);
-    term.write("Terminal started...\r\n");
-
+    term.open(document.getElementById("terminal"));
     termRef.current = term;
 
-    //define handler
-    handleOutput = (data) => {
-      console.log("Frontend received:", data);
+    // Listen to INTERACTIVE socket for output
+    interactiveSocketRef.current?.on("terminal:output", (data) => {
       term.write(data);
-    };
-
-    //listen
-    socket.on("terminal:output", handleOutput);
+    });
 
     //send input
     term.onData((data) => {
-  if (!socket) return;
+      if(!interactiveSocketRef.current) return;
 
-  // ENTER key
-  if (data === "\r") {
-    term.write("\r\n"); // move cursor visually
-    socket.emit("terminal:input", {
-      roomId,
-      data: "\n", // 🔥 IMPORTANT (send newline to backend)
+      interactiveSocketRef.current.emit("terminal:input", {
+        roomId,
+        data,
+      });
     });
-  } else {
-    term.write(data); // show typing
-    socket.emit("terminal:input", {
-      roomId,
-      data,
-    });
-  }
-});
-  }, 0);
 
-  //CLEANUP
-  return () => {
-    clearTimeout(timer);
+    // CLEANUP
+    return () => {
+      // Stop terminal on server
+      interactiveSocketRef.current?.emit("terminal:stop", { roomId });
 
-    socket.emit("terminal:stop", { roomId });
+      if(interactiveSocketRef.current){
+        interactiveSocketRef.current.off("terminal:output");
+      }
 
-    if (handleOutput) {
-      socket.off("terminal:output", handleOutput);
-    }
+      if (termRef.current) {
+        termRef.current.dispose();
+        termRef.current = null;
+      }
+    };
 
-    if (termRef.current) {
-      termRef.current.dispose();
-      termRef.current = null;
-    }
-  };
-}, [executionTab]);
+  }, [executionTab]);
 
   // Yjs
   useEffect(() => {
@@ -442,25 +428,26 @@ hello();
       return;
     }
     
-    const isInteractive = detectInputRequired(code,language);
+    const needsInput = detectInputRequired(code,language);
 
-    if(isInteractive){
-      console.log("Input detected -> Terminal");
+    if(needsInput){
+      console.log("Input detected -> Routing to local Terminal");
 
       setExecutionTab("terminal");
-
       setOutput("Input detected. Running in Terminal mode...\n");
 
-      setTimeout(() => {
-        interactiveSocketRef.current.emit("terminal:start",{
+      if(interactiveSocketRef.current) {
+        interactiveSocketRef.current.emit("terminal:start", {
           roomId,
           language,
           code,
         });
-      },100);
+      } else {
+        setOutput("// Error: Interactive server not connected. Check tunnel.");
+        setExecutionTab("output");
+      }
     }else{
       console.log("No input -> Output");
-
       setExecutionTab("output");
 
       socketRef.current.emit("execution:request",{
@@ -674,7 +661,7 @@ hello();
             <div className="flex-1 flex flex-col bg-black/40 min-h-0 overflow-hidden">
 
             <div className="flex justify-between items-center px-4 py-2 shrink-0 border-b border-white/5 bg-black/20">
-              {/* 🔥 LEFT: Output | Terminal buttons */}
+              {/* LEFT: Output | Terminal buttons */}
                <div className="relative flex items-center bg-white/5 rounded-md p-0.5">
 
                {/* Sliding background */}
@@ -736,7 +723,7 @@ hello();
       {output}
     </pre>
   ) : (
-    <div ref={terminalContainerRef} id="terminal" className="flex-1 w-full h-full overflow-y-auto" />
+    <div id="terminal" className="flex-1 w-full h-full overflow-y-auto" />
   )}
 
 </div>

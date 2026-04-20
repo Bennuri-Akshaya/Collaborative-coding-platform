@@ -108,25 +108,6 @@ function registerExecutionHandler(io,socket){
         }
     });
 
-    //Terminal part handling
-    // socket.on("terminal:start",({ roomId, language, code}) => {
-    //     startTerminal(io,socket,roomId,language,code);
-    // });
-
-    if (process.env.LOCAL_EXECUTION === "true") {
-       socket.on("terminal:start", ({ roomId, language, code }) => {
-        console.log("terminal:start triggered", { roomId, language });
-        startTerminal(io, socket, roomId, language, code);
-       });
-
-        socket.on("terminal:input", ({ roomId, data }) => {
-          handleInput(roomId, data);
-        });
-
-       socket.on("terminal:stop", ({ roomId }) => {
-        stopTerminal(roomId);
-       });
-    }
 }
 
 module.exports = { registerExecutionHandler };
