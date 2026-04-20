@@ -98,7 +98,7 @@ router.post("/forgot-password",async(req,res) => {
     await user.save();
 
     //reset link
-    const resetLink = `http://localhost:5173/reset-password/${token}`;
+    const resetLink = `https://codevcollaborative-coding-platform.vercel.app/reset-password/${token}`;
 
     //Send mail
     await resend.emails.send({

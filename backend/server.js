@@ -47,7 +47,7 @@ app.use(express.json());
 app.use('/auth', authRoutes);
 app.use('/rooms', authMiddleware, roomRoutes);
 app.use("/api/execution", require("./routes/executionRoutes.js"));
-app.use("/api/test",runCodeRoute)
+// app.use("/api/test",runCodeRoute)
 //Bull booard
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath("/admin/queues");

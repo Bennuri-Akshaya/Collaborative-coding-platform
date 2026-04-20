@@ -53,7 +53,7 @@ function registerRoomHandler(io, socket, rooms) {
     message: "Session expired. Please login again.",
   });
 
-  socket.disconnect(); // 🔥 THIS IS THE FIX
+  socket.disconnect();
   return;
     }
   });
