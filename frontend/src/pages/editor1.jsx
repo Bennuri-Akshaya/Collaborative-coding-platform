@@ -283,6 +283,8 @@ export default function EditorPage() {
   if (executionTab !== "terminal") return;
   if (!interactiveSocketRef.current) return;
 
+  const socket = interactiveSocketRef.current;
+
   //prevent multiple terminals
   if (termRef.current) return;
 
