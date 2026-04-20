@@ -316,6 +316,7 @@ export default function EditorPage() {
 
     //send input
     term.onData((data) => {
+      term.write(data);
       socket.emit("terminal:input", {
         roomId,
         data,
