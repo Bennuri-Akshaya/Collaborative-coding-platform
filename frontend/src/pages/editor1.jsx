@@ -241,7 +241,7 @@ export default function EditorPage() {
         console.log("Connected to Interactive server(Local Tunnel)");
         interactiveSocketRef.current.emit("join-room",{ roomId });
       });
-      interactiveSocketRef.current.emit("connect_error",(e)=>{
+      interactiveSocketRef.current.on("connect_error",(e)=>{
         console.error("Interactive connection failed.Is tunnel running?",e)
       });
     }else{
