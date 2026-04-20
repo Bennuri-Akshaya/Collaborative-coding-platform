@@ -55,19 +55,23 @@ function startTerminal(io, socket, roomId, language, code) {
   const filePath = path.join(tmpDir, lang.filename);
   fs.writeFileSync(filePath, code);
 
+  const normalizedDir = tmpDir
+  .replace(/\\/g, "/")
+  .replace(/^([A-Z]):/, (_, d) => `/${d.toLowerCase()}`);
+
   //Docker command per language
   let dockerCmd = "";
 
   if (language === "python") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${tmpDir}:/code" python:3.11 python /code/${lang.filename}`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" python:3.11 python /code/${lang.filename}`;
   } else if (language === "javascript") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${tmpDir}:/code" node:18 node /code/${lang.filename}`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" node:18 node /code/${lang.filename}`;
   } else if (language === "java") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${tmpDir}:/code" eclipse-temurin:21-jdk sh -c "javac /code/${lang.filename} -d /tmp && java -cp /tmp Main"`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" eclipse-temurin:21-jdk sh -c "javac /code/${lang.filename} -d /tmp && java -cp /tmp Main"`;
   } else if (language === "cpp") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec  -v "${tmpDir}:/code" gcc:13 sh -c "g++ /code/${lang.filename} -o /tmp/a && /tmp/a"`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec  -v "${normalizedDir}:/code" gcc:13 sh -c "g++ /code/${lang.filename} -o /tmp/a && /tmp/a"`;
   } else if (language === "c") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${tmpDir}:/code" gcc:13 sh -c "gcc /code/${lang.filename} -o /tmp/a && /tmp/a"`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" gcc:13 sh -c "gcc /code/${lang.filename} -o /tmp/a && /tmp/a"`;
   }
 
   //spawn terminal
