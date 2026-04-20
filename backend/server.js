@@ -6,6 +6,24 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 dotenv.config();
+const IORedis = require("ioredis");
+
+// Patch ALL Redis connections globally
+const OriginalRedis = IORedis;
+
+function PatchedRedis(...args) {
+  if (!args.length || args[0] === undefined) {
+    console.log("⚠️ Redis called without URL → forcing Upstash");
+    return new OriginalRedis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+      tls: {},
+    });
+  }
+  return new OriginalRedis(...args);
+}
+
+// Override ioredis globally
+require.cache[require.resolve("ioredis")].exports = PatchedRedis;
 const connectDB = require('./config/db');  
 const roomRoutes = require('./routes/roomRoutes');  
 const authRoutes = require('./routes/authRoutes');
@@ -21,7 +39,6 @@ const { queueConnection,executionQueue } = require("./execution/queue.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
 const { QueueEvents } = require("bullmq");
-const { queueConnection, executionQueue } = require("./execution/queue.js");
 
 const runCodeRoute = require("./routes/runCode.js");
 const { timeStamp } = require('console');
