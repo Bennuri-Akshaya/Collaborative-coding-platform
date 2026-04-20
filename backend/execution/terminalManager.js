@@ -63,7 +63,7 @@ function startTerminal(io, socket, roomId, language, code) {
   let dockerCmd = "";
 
   if (language === "python") {
-    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" python:3.11 python /code/${lang.filename}`;
+    dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" python:3.11 python -u /code/${lang.filename}`;
   } else if (language === "javascript") {
     dockerCmd = `docker run --rm -i --memory=128m --cpus=0.5 --pids-limit=64 --network=none --read-only --tmpfs /tmp:exec -v "${normalizedDir}:/code" node:18 node /code/${lang.filename}`;
   } else if (language === "java") {
@@ -102,6 +102,7 @@ function startTerminal(io, socket, roomId, language, code) {
 
   //output
   ptyProcess.onData((data) => {
+    console.log("PTY OUTPUT:",data);
     io.to(roomId).emit("terminal:output", data);
   });
 
