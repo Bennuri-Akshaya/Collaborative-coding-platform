@@ -284,6 +284,7 @@ export default function EditorPage() {
   if (!interactiveSocketRef.current) return;
 
   const socket = interactiveSocketRef.current;
+  const terminalContainerRef = useRef(null);
 
   //prevent multiple terminals
   if (termRef.current) return;
@@ -293,12 +294,15 @@ export default function EditorPage() {
     fontSize: 14,
   });
 
-  term.open(document.getElementById("terminal"));
-  termRef.current = term;
+  if (!terminalContainerRef.current) return;
+  term.open(terminalContainerRef.current);
+  term.write("Terminal started...\r\n");
 
   const handleOutput = (data) => {
     console.log("Frontend received:",data);
-    term.write(data);
+    if(termRef.current){
+      term.current.write(data);
+    }
   }
   socket.on("terminal:output",handleOutput)
 
@@ -719,7 +723,7 @@ hello();
       {output}
     </pre>
   ) : (
-    <div id="terminal" className="flex-1 w-full h-full overflow-y-auto" />
+    <div ref={terminalContainerRef} id="terminal" className="flex-1 w-full h-full overflow-y-auto" />
   )}
 
 </div>
