@@ -294,14 +294,15 @@ export default function EditorPage() {
   term.open(document.getElementById("terminal"));
   termRef.current = term;
 
-  //Receive the output
-  interactiveSocketRef.current.on("terminal:output", (data) => {
+  const handleOutput = (data) => {
+    console.log("Frontend received:",data);
     term.write(data);
-  });
+  }
+  socket.on("terminal:output",handleOutput)
 
   //Send input and also show the typed text by the user 
   term.onData((data) => {
-    if(!interactiveSocketRef.current) return;
+    if(!socket) return;
 
     //enter key 
     if(data === "\r"){
@@ -311,7 +312,7 @@ export default function EditorPage() {
     });
     return;
     }else{
-      interactiveSocketRef.current.emit("terminal:input",{
+      socket.emit("terminal:input",{
       roomId,
       data,
     });
@@ -320,11 +321,9 @@ export default function EditorPage() {
 
   //CLEANUP FUNCTION
   return () => {
-    interactiveSocketRef.current.emit("terminal:stop",{ roomId });
+    socket.emit("terminal:stop",{ roomId });
 
-    if(interactiveSocketRef.current){
-      interactiveSocketRef.current.off("terminal:output");
-    }
+    socket.off("terminal:output",handleOutput);
 
     if (termRef.current) {
       termRef.current.dispose();
