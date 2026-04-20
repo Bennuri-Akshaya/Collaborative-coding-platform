@@ -1,11 +1,10 @@
 // 
 
 const { Queue } = require("bullmq");
-const IORedis = require("../server.js");
+const IORedis = require("ioredis");
 const dotenv = require('dotenv');
 dotenv.config();
 
-console.log("REDIS_URL:", process.env.REDIS_URL);
 // Use Upstash Redis URL
 const queueConnection = new IORedis(process.env.REDIS_URL, {
     maxRetriesPerRequest: null,
@@ -26,4 +25,4 @@ const executionQueue = new Queue("code-execution", {
     },
 });
 
-module.exports = { executionQueue, workerConnection };
+module.exports = { executionQueue, workerConnection, queueConnection };

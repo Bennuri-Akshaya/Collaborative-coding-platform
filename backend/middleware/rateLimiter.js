@@ -1,6 +1,6 @@
 //Limiting the number of times a user can click the run endpoint
 const { RateLimiterRedis } = require("rate-limiter-flexible");
-const { Redis } = require("ioredis");
+const Redis = require("ioredis");
 require("dotenv").config();
 
 //Separate Redis connection for rate limiting
