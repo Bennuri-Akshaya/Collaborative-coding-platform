@@ -39,6 +39,7 @@ const { queueConnection,executionQueue } = require("./execution/queue.js");
 const { initializeSockets } = require("./socket/index.js")
 const { registerExecutionHandler } = require("./socket/executionHandler.js")
 const { QueueEvents } = require("bullmq");
+const { setRoomIdle } = require("./execution/roomExecutionState.js");
 
 const runCodeRoute = require("./routes/runCode.js");
 const { timeStamp } = require('console');
@@ -107,6 +108,8 @@ queueEvents.on("completed",async ({ jobId, returnvalue }) => {
   const { roomId, username, language } = job.data;
   const result = returnvalue;
 
+  setRoomIdle(roomId);
+
   io.to(roomId).emit("execution:result",{
     stdout: result.stdout,
     stderr: result.stderr,
@@ -125,6 +128,8 @@ queueEvents.on("failed",async ({ jobId, failedReason }) => {
   if(!job) return;
 
   const { roomId, username } = job.data;
+
+  setRoomIdle(roomId);
 
   io.to(roomId).emit("execution:error",{
     message: failedReason,
