@@ -2,11 +2,11 @@ const express = require("express");
 const router = express.Router();
 const { Queue,QueueEvents } = require("bullmq");
 const IORedis = require("ioredis");
+require("dotenv").config();
 
-const connection = new IORedis({
-  host: "127.0.0.1",
-  port: 6379,
+const connection = new IORedis(process.env.REDIS_URL,{
   maxRetriesPerRequest: null,
+  tls: {}
 });
 
 const codeQueue = new Queue("code-execution", { connection });

@@ -1,12 +1,12 @@
 //Limiting the number of times a user can click the run endpoint
 const { RateLimiterRedis } = require("rate-limiter-flexible");
 const { Redis } = require("ioredis");
+require("dotenv").config();
 
 //Separate Redis connection for rate limiting
-const redisClient = new Redis({
-    host: "127.0.0.1",
-    port: 6379,
-    enableOfflineQueue: false //fail fast of redis is down
+const redisClient = new Redis(process.env.REDIS_URL,{
+    enableOfflineQueue: false, //fail fast of redis is down
+    tls: {}
 });
 
 //Per user rate limiter
